@@ -6,6 +6,8 @@ check_and_install_python() {
     if ! python3 --version &>/dev/null; then
         echo "Python 3 is not installed. Installing Python 3..."
         brew install python
+        # Ensure pip is up to date
+        python3 -m pip install --upgrade pip
     else
         echo "Python 3 is installed."
     fi
@@ -24,6 +26,12 @@ check_and_install_mysql() {
     fi
 }
 
+# Function to install mysql-connector-python
+install_mysql_connector() {
+    echo "Installing mysql-connector-python..."
+    python3 -m pip install mysql-connector-python
+}
+
 # Main function to perform checks
 main() {
     # Check for Homebrew installation and install if not present
@@ -34,6 +42,7 @@ main() {
 
     check_and_install_python
     check_and_install_mysql
+    install_mysql_connector
 }
 
 # Call the main function
