@@ -2,91 +2,118 @@ import mysql.connector
 from mysql.connector import Error
 import sys
 
-def create_database_connection(host_name, user_name, user_password, db_name=None):
-    """Create a database connection"""
+def create_server_connection(host_name, user_name, user_password):
+    """Create a connection to the MySQL server"""
     connection = None
     try:
         connection = mysql.connector.connect(
             host=host_name,
             user=user_name,
-            password=user_password,
-            database=db_name
+            password=user_password
         )
-        print("MySQL Database connection successful")
+        print("MySQL Database server connection successful")
     except Error as e:
         print(f"Error: '{e}'")
-        return None  # Ensure the function returns None explicitly on failure
-
+        sys.exit(1)  # Exit the script if we cannot connect to MySQL
     return connection
 
-def create_database(connection, query):
-    """Create a database"""
+def drop_database(connection, db_name):
+    """Drop the database if it exists"""
     cursor = connection.cursor()
     try:
-        cursor.execute(query)
-        print("Database created successfully")
-    except Error as e:
-        print(f"Error: '{e}'")
-
-def execute_query(connection, query):
-    """Execute SQL query"""
-    cursor = connection.cursor()
-    try:
-        cursor.execute(query)
+        cursor.execute(f"DROP DATABASE IF EXISTS {db_name};")
         connection.commit()
-        print("Query successful")
+        print(f"Database '{db_name}' dropped successfully.")
     except Error as e:
         print(f"Error: '{e}'")
+        cursor.close()
+        sys.exit(1)  # Exit the script if we cannot drop the database
+    finally:
+        cursor.close()
+
+def create_database(connection, db_name):
+    """Create a new database"""
+    cursor = connection.cursor()
+    try:
+        cursor.execute(f"CREATE DATABASE {db_name};")
+        connection.commit()
+        print(f"Database '{db_name}' created successfully.")
+    except Error as e:
+        print(f"Error: '{e}'")
+        cursor.close()
+        sys.exit(1)  # Exit the script if we cannot create the database
+    finally:
+        cursor.close()
+
+def create_tables(connection):
+    """Create tables in the specified database"""
+    cursor = connection.cursor()
+    try:
+        # Clients table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS clients (
+            client_id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            ssn VARCHAR(255) NOT NULL UNIQUE,
+            address VARCHAR(255) NOT NULL,
+            bank VARCHAR(255) NOT NULL
+        );
+        """)
+        # Accounts table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS accounts (
+            account_id INT AUTO_INCREMENT PRIMARY KEY,
+            description TEXT NOT NULL,
+            account_balance DECIMAL(10, 2) NOT NULL
+        );
+        """)
+        # Transactions table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS transactions (
+            transaction_id INT AUTO_INCREMENT PRIMARY KEY,
+            client_id INT,
+            debit_account_id INT,
+            credit_account_id INT,
+            debit_amount DECIMAL(10, 2),
+            credit_amount DECIMAL(10, 2),
+            transaction_date DATE NOT NULL,
+            description TEXT,
+            FOREIGN KEY (client_id) REFERENCES clients(client_id),
+            FOREIGN KEY (debit_account_id) REFERENCES accounts(account_id),
+            FOREIGN KEY (credit_account_id) REFERENCES accounts(account_id)
+        );
+        """)
+        connection.commit()
+        print("Tables created successfully.")
+    except Error as e:
+        print(f"Error: '{e}'")
+        sys.exit(1)  # Exit the script if we cannot create tables
+    finally:
+        cursor.close()
 
 def main():
+    host = "localhost"
+    db_name = "tax_prep_db"
     mysql_username = sys.argv[1]
     mysql_password = sys.argv[2]
 
-    connection = create_database_connection("localhost", mysql_username, mysql_password, "tax_prep_db")
-    if connection is None:
-        print("Failed to connect to the database. Exiting...")
-        return  # Exit if the connection was not successful
+    # Connect to MySQL Server
+    server_connection = create_server_connection(host, mysql_username, mysql_password)
 
-    create_database_query = "CREATE DATABASE IF NOT EXISTS tax_prep_db"
-    create_database(connection, create_database_query)
+    # Drop existing database if it exists
+    drop_database(server_connection, db_name)
 
-    create_clients_table = """
-    CREATE TABLE IF NOT EXISTS clients (
-        client_id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        ssn VARCHAR(255) NOT NULL UNIQUE,
-        address VARCHAR(255) NOT NULL,
-        bank VARCHAR(255) NOT NULL
-    );
-    """
+    # Create new database
+    create_database(server_connection, db_name)
 
-    create_accounts_table = """
-    CREATE TABLE IF NOT EXISTS accounts (
-        account_id INT AUTO_INCREMENT PRIMARY KEY,
-        description TEXT NOT NULL,
-        account_balance DECIMAL(10, 2) NOT NULL
-    );
-    """
+    # Connect to the newly created database
+    db_connection = create_server_connection(host, mysql_username, mysql_password, db_name)
 
-    create_transactions_table = """
-    CREATE TABLE IF NOT EXISTS transactions (
-        transaction_id INT AUTO_INCREMENT PRIMARY KEY,
-        client_id INT,
-        debit_account_id INT,
-        credit_account_id INT,
-        debit_amount DECIMAL(10, 2),
-        credit_amount DECIMAL(10, 2),
-        transaction_date DATE NOT NULL,
-        description TEXT,
-        FOREIGN KEY (client_id) REFERENCES clients(client_id),
-        FOREIGN KEY (debit_account_id) REFERENCES accounts(account_id),
-        FOREIGN KEY (credit_account_id) REFERENCES accounts(account_id)
-    );
-    """
+    # Create tables
+    create_tables(db_connection)
 
-    execute_query(connection, create_clients_table)
-    execute_query(connection, create_accounts_table)
-    execute_query(connection, create_transactions_table)
+    # Close the connection
+    db_connection.close()
 
 if __name__ == "__main__":
     main()
