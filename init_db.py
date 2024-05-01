@@ -1,5 +1,6 @@
 import mysql.connector
 from mysql.connector import Error
+import sys
 
 def create_database_connection(host_name, user_name, user_password, db_name=None):
     """Create a database connection"""
@@ -14,6 +15,7 @@ def create_database_connection(host_name, user_name, user_password, db_name=None
         print("MySQL Database connection successful")
     except Error as e:
         print(f"Error: '{e}'")
+        return None  # Ensure the function returns None explicitly on failure
 
     return connection
 
@@ -37,12 +39,16 @@ def execute_query(connection, query):
         print(f"Error: '{e}'")
 
 def main():
-    connection = create_database_connection("localhost", "root", "your_password")  # Adjust as needed
+    mysql_username = sys.argv[1]
+    mysql_password = sys.argv[2]
+
+    connection = create_database_connection("localhost", mysql_username, mysql_password, "tax_prep_db")
+    if connection is None:
+        print("Failed to connect to the database. Exiting...")
+        return  # Exit if the connection was not successful
 
     create_database_query = "CREATE DATABASE IF NOT EXISTS tax_prep_db"
     create_database(connection, create_database_query)
-
-    connection = create_database_connection("localhost", "root", "your_password", "tax_prep_db")
 
     create_clients_table = """
     CREATE TABLE IF NOT EXISTS clients (

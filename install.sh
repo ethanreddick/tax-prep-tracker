@@ -26,10 +26,24 @@ check_and_install_mysql() {
     fi
 }
 
-# Function to install mysql-connector-python
-install_mysql_connector() {
-    echo "Installing mysql-connector-python..."
+# Function to set up Python virtual environment and install mysql-connector-python
+setup_virtual_environment() {
+    echo "Setting up Python virtual environment and installing dependencies..."
+    python3 -m venv ~/tax_prep_venv
+    source ~/tax_prep_venv/bin/activate
     python3 -m pip install mysql-connector-python
+}
+
+# Function to download and run the Python script for database initialization
+run_database_init_script() {
+    echo "Please enter MySQL username (e.g., 'root'):"
+    read mysql_username
+    echo "Please enter MySQL password:"
+    read -s mysql_password
+
+    echo "Downloading and running the database initialization script..."
+    curl -sSL https://raw.githubusercontent.com/ethanreddick/tax-prep-tracker/main/init_db.py -o init_db.py
+    python3 init_db.py "$mysql_username" "$mysql_password"
 }
 
 # Main function to perform checks
@@ -42,7 +56,8 @@ main() {
 
     check_and_install_python
     check_and_install_mysql
-    install_mysql_connector
+    setup_virtual_environment
+    run_database_init_script
 }
 
 # Call the main function
