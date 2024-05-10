@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Function to check and install Python 3
+# Ensure Python is installed and update pip
 check_and_install_python() {
     echo "Checking for Python 3..."
     if ! python3 --version &>/dev/null; then
@@ -13,7 +13,8 @@ check_and_install_python() {
     fi
 }
 
-# Function to check and install MySQL
+
+# Ensure MySQL is installed and start the service
 check_and_install_mysql() {
     echo "Checking for MySQL..."
     if ! mysql --version &>/dev/null; then
@@ -36,12 +37,13 @@ setup_virtual_environment() {
 
 # Function to download and run the Python script for database initialization
 run_database_init_script() {
-    echo "Please enter MySQL username (e.g., 'root'):"
+    echo "Please enter a MySQL username (e.g., 'Jacob') to use:"
     read mysql_username
-    echo "Please enter MySQL password:"
+    echo "Please enter a MySQL password to use:"
     read -s mysql_password
 
     echo "Downloading and running the database initialization script..."
+    source ~/tax_prep_venv/bin/activate
     curl -sSL https://raw.githubusercontent.com/ethanreddick/tax-prep-tracker/main/init_db.py -o init_db.py
     python3 init_db.py "$mysql_username" "$mysql_password"
 }

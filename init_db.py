@@ -2,16 +2,17 @@ import mysql.connector
 from mysql.connector import Error
 import sys
 
-def create_server_connection(host_name, user_name, user_password):
+def create_server_connection(host_name, user_name, user_password, db_name=None):
     """Create a connection to the MySQL server"""
     connection = None
     try:
         connection = mysql.connector.connect(
             host=host_name,
             user=user_name,
-            password=user_password
+            password=user_password,
+            database=db_name  # This will be None unless specified
         )
-        print("MySQL Database server connection successful")
+        print("MySQL Database connection successful")
     except Error as e:
         print(f"Error: '{e}'")
         sys.exit(1)  # Exit the script if we cannot connect to MySQL
