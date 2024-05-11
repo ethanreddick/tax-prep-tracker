@@ -1,3 +1,7 @@
+# About
+
+This project aims to provide a solution for my friend to be able to better track the financials of his start-up. The goal is to create a cross-platform app that allows him to quickly view relevant reports and track his accounts over time. Built using Electron (Node.js) and MySQL.
+
 # Initial Setup
 
 ## Linux / macOS
