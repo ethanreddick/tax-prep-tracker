@@ -10,5 +10,5 @@ curl -sSL https://raw.githubusercontent.com/ethanreddick/tax-prep-tracker/main/i
 
 ## Windows
 
-1. Download the Windows_Setup folder.
-2. Open the folder and double-click on 'install.bat'
+1. Download both files in the Windows_Setup folder to the same location.
+2. Double-click on 'install.bat'.
