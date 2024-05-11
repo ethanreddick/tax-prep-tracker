@@ -1,4 +1,5 @@
 #!/bin/bash
+# Bash script that verifies presence of dependencies and sets up the database
 
 # Ensure Python is installed and update pip
 check_and_install_python() {
@@ -12,7 +13,6 @@ check_and_install_python() {
         echo "Python 3 is installed."
     fi
 }
-
 
 # Ensure MySQL is installed and start the service
 check_and_install_mysql() {
