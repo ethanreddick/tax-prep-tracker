@@ -3,30 +3,27 @@ const fs = require("fs");
 const crypto = require("crypto");
 
 // Read and parse the configuration file
-const config = JSON.parse(fs.readFileSync("config.json", "utf8"));
+const config = JSON.parse(fs.readFileSync("../config.json", "utf8"));
 const algorithm = "aes-256-cbc";
 const key = Buffer.from(config.key, "hex");
 const iv = Buffer.from(config.iv, "hex");
 
-function decrypt(encrypted) {
-  const textParts = encrypted.split(":");
-  const iv = Buffer.from(textParts.shift(), "hex");
-  const encryptedText = Buffer.from(textParts.join(":"), "hex");
-  const decipher = crypto.createDecipheriv(algorithm, Buffer.from(key), iv);
-  let decrypted = decipher.update(encryptedText);
-  decrypted = Buffer.concat([decrypted, decipher.final()]);
-  return decrypted.toString();
+function decrypt(encrypted, key, iv) {
+  const decipher = crypto.createDecipheriv(algorithm, key, iv);
+  let decrypted = decipher.update(encrypted, "hex", "utf8");
+  decrypted += decipher.final("utf8");
+  return decrypted;
 }
 
 // Decrypt the credentials
-const credentials = JSON.parse(decrypt(config.data));
+const credentials = JSON.parse(decrypt(config.encrypted, key, iv));
 
 // Create a connection to the database using the decrypted credentials
 const connection = mysql.createConnection({
-  host: "localhost",
-  user: credentials.user,
-  password: credentials.password,
-  database: "tax_prep_db",
+  host: "localhost", // Or your MySQL server host
+  user: credentials.username, // 'username' should match the key in your stored JSON
+  password: credentials.password, // 'password' should match the key in your stored JSON
+  database: "tax_prep_db", // Make sure this is your database name
 });
 
 // Connect to the database

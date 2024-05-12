@@ -77,7 +77,8 @@ const algorithm = 'aes-256-cbc';
 const key = crypto.randomBytes(32);
 const iv = crypto.randomBytes(16);
 const cipher = crypto.createCipheriv(algorithm, key, iv);
-let crypted = cipher.update('$mysql_username:$mysql_password', 'utf8', 'hex');
+let data = JSON.stringify({ username: '$mysql_username', password: '$mysql_password' });
+let crypted = cipher.update(data, 'utf8', 'hex');
 crypted += cipher.final('hex');
 fs.writeFileSync('$config_path', JSON.stringify({ key: key.toString('hex'), iv: iv.toString('hex'), encrypted: crypted }));
 "@
