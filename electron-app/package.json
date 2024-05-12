@@ -6,6 +6,9 @@
     "start": "electron ."
   },
   "devDependencies": {
-    "electron": "^latest_version"
+    "electron": "latest"
+  },
+  "dependencies": {
+    "mysql": "^2.18.1"
   }
 }
