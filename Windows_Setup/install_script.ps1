@@ -54,6 +54,23 @@ function Setup-VirtualEnvironment {
     npm install crypto
 }
 
+function Configure-MySQLAuthentication {
+    param (
+        [string]$rootPassword,
+        [string]$appUsername,
+        [string]$appPassword
+    )
+    Write-Host "Configuring MySQL user authentication method..."
+    $query = "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '$appPassword'; FLUSH PRIVILEGES;"
+    $command = "mysql -u root -p$rootPassword -e `"$query`""
+    Invoke-Expression $command
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "MySQL user authentication configured successfully."
+    } else {
+        Write-Host "Failed to configure MySQL user authentication. Please check your root password and try again."
+    }
+}
+
 function Run-Database-Init-Script {
     $config_path = "$env:USERPROFILE\config.json"
 
@@ -68,6 +85,9 @@ function Run-Database-Init-Script {
     Write-Host "Please enter a MySQL password to use:"
     $mysql_password = Read-Host -AsSecureString
     $mysql_password = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($mysql_password))
+
+    # Configure MySQL authentication
+    Configure-MySQLAuthentication $mysqlRootPassword $mysqlUsername $mysqlPassword
 
     Write-Host "Encrypting and storing credentials..."
     $script = @"

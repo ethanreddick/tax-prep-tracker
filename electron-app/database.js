@@ -20,10 +20,10 @@ const credentials = JSON.parse(decrypt(config.encrypted, key, iv));
 
 // Create a connection to the database using the decrypted credentials
 const connection = mysql.createConnection({
-  host: "localhost", // Or your MySQL server host
-  user: credentials.username, // 'username' should match the key in your stored JSON
-  password: credentials.password, // 'password' should match the key in your stored JSON
-  database: "tax_prep_db", // Make sure this is your database name
+  host: "localhost",
+  user: credentials.username,
+  password: credentials.password,
+  database: "tax_prep_db",
 });
 
 // Connect to the database
