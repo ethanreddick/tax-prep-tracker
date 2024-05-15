@@ -1,98 +1,135 @@
-// Manage Client
-// Show the add client form
-function addClient() {
-  const formHtml = `
-        <form id="addClientForm">
-            <h2>Add Client</h2>
-            <div class="form-group">
-                <label for="name">Name:</label>
-                <input type="text" id="name" name="name">
-            </div>
-            <div class="form-group">
-                <label for="ssn">SSN:</label>
-                <input type="text" id="ssn" name="ssn">
-            </div>
-            <div class="form-group">
-                <label for="address">Address:</label>
-                <input type="text" id="address" name="address">
-            </div>
-            <div class="form-group">
-                <label for="bank">Bank:</label>
-                <input type="text" id="bank" name="bank">
-            </div>
-            <button type="button" class="action-btn" onclick="submitAddClient()">Add Client</button>
-            <div id="success-message"></div>
-            <div id="error-message" onclick="showErrorDetails()"></div>
-        </form>`;
-  document.getElementById("mainContent").innerHTML = formHtml;
+// Function to update the main content area
+function updateMainContent(content) {
+  document.getElementById("mainContent").innerHTML = content;
 }
 
-// Show the update client form and load clients
-function updateClient() {
-  const formHtml = `
-        <div id="updateClientForm">
-            <h2>Update Client</h2>
-            <div class="form-group">
-                <label for="clientSelect">Select Client:</label>
-                <select id="clientSelect" onchange="loadClientData()"></select>
-            </div>
-            <div class="form-group">
-                <label for="updateName">Name:</label>
-                <input type="text" id="updateName">
-            </div>
-            <div class="form-group">
-                <label for="updateSSN">SSN:</label>
-                <input type="text" id="updateSSN">
-            </div>
-            <div class="form-group">
-                <label for="updateAddress">Address:</label>
-                <input type="text" id="updateAddress">
-            </div>
-            <div class="form-group">
-                <label for="updateBank">Bank:</label>
-                <input type="text" id="updateBank">
-            </div>
-            <button type="button" class="action-btn" onclick="submitUpdateClient()">Save Changes</button>
-        </div>`;
-  document.getElementById("mainContent").innerHTML = formHtml;
-  loadClients("clientSelect");
-}
+// Add Client Form
+const addClientFormHTML = `
+    <form id="addClientForm">
+        <h2>Add Client</h2>
+        <div class="form-group">
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name">
+        </div>
+        <div class="form-group">
+            <label for="ssn">SSN:</label>
+            <input type="text" id="ssn" name="ssn">
+        </div>
+        <div class="form-group">
+            <label for="address">Address:</label>
+            <input type="text" id="address" name="address">
+        </div>
+        <div class="form-group">
+            <label for="bank">Bank:</label>
+            <input type="text" id="bank" name="bank">
+        </div>
+        <button type="button" class="action-btn" onclick="submitAddClient()">Add Client</button>
+        <p id="addClientMessage" style="color: darkgreen;"></p>
+    </form>
+`;
 
-// Show the remove client form and load clients
-function removeClient() {
-  const formHtml = `
-        <div id="removeClientForm">
-            <h2>Remove Client</h2>
-            <div class="form-group">
-                <label for="removeClientSelect">Select Client:</label>
-                <select id="removeClientSelect"></select>
-            </div>
-            <button type="button" class="action-btn" onclick="submitRemoveClient()">Remove Client</button>
-        </div>`;
-  document.getElementById("mainContent").innerHTML = formHtml;
-  loadClients("removeClientSelect");
-}
+// Update Client Form
+const updateClientFormHTML = `
+    <h1>Update Client</h1>
+    <select id="clientSelect" onchange="loadClientData()">
+        <!-- Options will be loaded here -->
+    </select>
+    <button type="button" onclick="prepareUpdateClient()">Load Client</button>
+    <form id="updateClientForm">
+        <div class="form-group">
+            <label for="updateName">Name:</label>
+            <input type="text" id="updateName" name="name">
+        </div>
+        <div class="form-group">
+            <label for="updateSSN">SSN:</label>
+            <input type="text" id="updateSSN" name="ssn">
+        </div>
+        <div class="form-group">
+            <label for="updateAddress">Address:</label>
+            <input type="text" id="updateAddress" name="address">
+        </div>
+        <div class="form-group">
+            <label for="updateBank">Bank:</label>
+            <input type="text" id="updateBank" name="bank">
+        </div>
+        <button type="button" class="action-btn" onclick="submitUpdateClient()">Save Changes</button>
+        <p id="updateClientMessage" style="color: darkgreen;"></p>
+    </form>
+`;
 
-// Load clients into a select element
-function loadClients(selectId) {
-  const select = document.getElementById(selectId);
-  select.innerHTML = ""; // Clear existing options
-  // Fetch clients from the database
-  fetchClients().then((clients) => {
-    clients.forEach((client) => {
-      let option = new Option(client.name, client.id);
-      select.add(option);
+// Remove Client Form
+const removeClientFormHTML = `
+    <h1>Remove Client</h1>
+    <select id="removeClientSelect">
+        <!-- Options will be loaded here -->
+    </select>
+    <button type="button" class="action-btn" onclick="submitRemoveClient()">Remove Client</button>
+    <p id="removeClientMessage" style="color: darkgreen;"></p>
+`;
+
+// Event listeners for the buttons
+function addEventListeners() {
+  document
+    .getElementById("clients-box")
+    .querySelector("button:nth-child(2)")
+    .addEventListener("click", () => {
+      updateMainContent(addClientFormHTML);
     });
-  });
-}
 
-// Example fetchClients function
-async function fetchClients() {
-  // This should actually call your main process to fetch from DB
-  return [
-    { id: 1, name: "John Doe" },
-    { id: 2, name: "Jane Doe" },
-  ];
+  document
+    .getElementById("clients-box")
+    .querySelector("button:nth-child(3)")
+    .addEventListener("click", () => {
+      updateMainContent(updateClientFormHTML);
+      loadClients("clientSelect");
+    });
+
+  document
+    .getElementById("clients-box")
+    .querySelector("button:nth-child(4)")
+    .addEventListener("click", () => {
+      updateMainContent(removeClientFormHTML);
+      loadClients("removeClientSelect");
+    });
+
+  document
+    .getElementById("accounts-box")
+    .querySelector("button:nth-child(2)")
+    .addEventListener("click", addAccount);
+  document
+    .getElementById("accounts-box")
+    .querySelector("button:nth-child(3)")
+    .addEventListener("click", updateAccount);
+  document
+    .getElementById("accounts-box")
+    .querySelector("button:nth-child(4)")
+    .addEventListener("click", removeAccount);
+
+  document
+    .getElementById("transactions-box")
+    .querySelector("button:nth-child(2)")
+    .addEventListener("click", addTransaction);
+  document
+    .getElementById("transactions-box")
+    .querySelector("button:nth-child(3)")
+    .addEventListener("click", updateTransaction);
+  document
+    .getElementById("transactions-box")
+    .querySelector("button:nth-child(4)")
+    .addEventListener("click", removeTransaction);
+
+  document
+    .getElementById("reports-box")
+    .querySelector("button:nth-child(2)")
+    .addEventListener("click", showBalanceSheet);
+  document
+    .getElementById("reports-box")
+    .querySelector("button:nth-child(3)")
+    .addEventListener("click", showIncomeStatement);
+  document
+    .getElementById("reports-box")
+    .querySelector("button:nth-child(4)")
+    .addEventListener("click", showTrialBalance);
 }
 
 // Add a new client to the database
@@ -104,42 +141,19 @@ function submitAddClient() {
     bank: document.getElementById("bank").value,
   };
 
-  // Call your main process to add the client to the database
-  // Assuming this is an async function, handle the response
-  addClientToDatabase(client)
+  window.electronAPI
+    .addClient(client)
     .then((response) => {
-      document.getElementById("success-message").textContent =
+      document.getElementById("addClientMessage").innerText =
         `${client.name} was successfully added to the database.`;
-      document.getElementById("success-message").style.display = "block";
-      document.getElementById("error-message").style.display = "none";
     })
     .catch((error) => {
-      document.getElementById("error-message").textContent =
+      document.getElementById("addClientMessage").innerText =
         "There was an error adding the client to the database, click here for details.";
-      document.getElementById("error-message").style.display = "block";
-      document.getElementById("success-message").style.display = "none";
-      // Store error details to show later if needed
-      window.lastError = error;
+      document.getElementById("addClientMessage").style.color = "red";
+      document.getElementById("addClientMessage").onclick = () =>
+        alert(error.message);
     });
-}
-
-// Function to add client to database (stub for demonstration)
-async function addClientToDatabase(client) {
-  // Replace with actual database call
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (client.name && client.ssn) {
-        resolve("Success");
-      } else {
-        reject("Error: Missing required fields.");
-      }
-    }, 1000);
-  });
-}
-
-// Function to show error details
-function showErrorDetails() {
-  alert(window.lastError || "No error details available.");
 }
 
 // Update client details in the database
@@ -151,13 +165,52 @@ function submitUpdateClient() {
     address: document.getElementById("updateAddress").value,
     bank: document.getElementById("updateBank").value,
   };
-  // Call your main process to update the client in the database
+
+  window.electronAPI
+    .updateClient(client)
+    .then((response) => {
+      document.getElementById("updateClientMessage").innerText =
+        `${client.name} was successfully updated in the database.`;
+    })
+    .catch((error) => {
+      document.getElementById("updateClientMessage").innerText =
+        "There was an error updating the client in the database, click here for details.";
+      document.getElementById("updateClientMessage").style.color = "red";
+      document.getElementById("updateClientMessage").onclick = () =>
+        alert(error.message);
+    });
 }
 
 // Remove a client from the database
 function submitRemoveClient() {
   let clientId = document.getElementById("removeClientSelect").value;
-  // Call your main process to remove the client from the database
+
+  window.electronAPI
+    .removeClient(clientId)
+    .then((response) => {
+      document.getElementById("removeClientMessage").innerText =
+        `Client was successfully removed from the database.`;
+    })
+    .catch((error) => {
+      document.getElementById("removeClientMessage").innerText =
+        "There was an error removing the client from the database, click here for details.";
+      document.getElementById("removeClientMessage").style.color = "red";
+      document.getElementById("removeClientMessage").onclick = () =>
+        alert(error.message);
+    });
+}
+
+// Load clients into a select element
+function loadClients(selectId) {
+  const select = document.getElementById(selectId);
+  select.innerHTML = ""; // Clear existing options
+  // Fetch clients from the database
+  window.electronAPI.fetchClients().then((clients) => {
+    clients.forEach((client) => {
+      let option = new Option(client.name, client.id);
+      select.add(option);
+    });
+  });
 }
 
 // Manage Account
@@ -203,3 +256,6 @@ function showTrialBalance() {
   document.getElementById("mainContent").innerHTML = "<h1>Trial Balance</h1>";
   // Further implementation needed
 }
+
+// Ensure that the DOM is fully loaded before adding event listeners
+document.addEventListener("DOMContentLoaded", addEventListeners);

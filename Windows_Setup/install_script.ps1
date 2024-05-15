@@ -48,27 +48,10 @@ function Check-And-Install-MySQL {
 
 function Setup-VirtualEnvironment {
     Write-Host "Setting up Python virtual environment and installing dependencies..."
-    python3 -m venv "$env:USERPROFILE\tax_prep_venv"
+    python -m venv "$env:USERPROFILE\tax_prep_venv"
     & "$env:USERPROFILE\tax_prep_venv\Scripts\Activate.ps1"
-    python3 -m pip install mysql-connector-python
+    python -m pip install mysql-connector-python
     npm install crypto
-}
-
-function Configure-MySQLAuthentication {
-    param (
-        [string]$rootPassword,
-        [string]$appUsername,
-        [string]$appPassword
-    )
-    Write-Host "Configuring MySQL user authentication method..."
-    $query = "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '$appPassword'; FLUSH PRIVILEGES;"
-    $command = "mysql -u root -p$rootPassword -e `"$query`""
-    Invoke-Expression $command
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "MySQL user authentication configured successfully."
-    } else {
-        Write-Host "Failed to configure MySQL user authentication. Please check your root password and try again."
-    }
 }
 
 function Run-Database-Init-Script {
@@ -86,9 +69,6 @@ function Run-Database-Init-Script {
     $mysql_password = Read-Host -AsSecureString
     $mysql_password = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($mysql_password))
 
-    # Configure MySQL authentication
-    Configure-MySQLAuthentication $mysqlRootPassword $mysqlUsername $mysqlPassword
-
     Write-Host "Encrypting and storing credentials..."
     $script = @"
 const crypto = require('crypto');
@@ -97,8 +77,7 @@ const algorithm = 'aes-256-cbc';
 const key = crypto.randomBytes(32);
 const iv = crypto.randomBytes(16);
 const cipher = crypto.createCipheriv(algorithm, key, iv);
-let data = JSON.stringify({ username: '$mysql_username', password: '$mysql_password' });
-let crypted = cipher.update(data, 'utf8', 'hex');
+let crypted = cipher.update('$mysql_username:$mysql_password', 'utf8', 'hex');
 crypted += cipher.final('hex');
 fs.writeFileSync('$config_path', JSON.stringify({ key: key.toString('hex'), iv: iv.toString('hex'), encrypted: crypted }));
 "@
@@ -108,6 +87,9 @@ fs.writeFileSync('$config_path', JSON.stringify({ key: key.toString('hex'), iv: 
     & "$env:USERPROFILE\tax_prep_venv\Scripts\Activate.ps1"
     Invoke-WebRequest -Uri "https://raw.githubusercontent.com/ethanreddick/tax-prep-tracker/main/init_db.py" -OutFile "$env:USERPROFILE\init_db.py"
     python3 "$env:USERPROFILE\init_db.py" $mysql_username $mysql_password
+
+    Write-Host "Configuring MySQL authentication plugin..."
+    mysql -u "$mysql_username" -p"$mysql_password" -e "ALTER USER '$mysql_username'@'localhost' IDENTIFIED WITH mysql_native_password BY '$mysql_password'; FLUSH PRIVILEGES;"
 }
 
 function Main {

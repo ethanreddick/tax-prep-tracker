@@ -57,17 +57,6 @@ setup_virtual_environment() {
     npm install crypto
 }
 
-# Function to configure MySQL user authentication
-configure_mysql_authentication() {
-    echo "Configuring MySQL user authentication method..."
-    mysql -u root -p"$1" -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '$2'; FLUSH PRIVILEGES;"
-    if [ $? -eq 0 ]; then
-        echo "MySQL user authentication configured successfully."
-    else
-        echo "Failed to configure MySQL user authentication. Please check your root password and try again."
-    fi
-}
-
 # Function to download and run the Python script for database initialization
 # Also, this takes the user's credentials, encrypts them, and stores them in a local config
 run_database_init_script() {
@@ -84,12 +73,8 @@ run_database_init_script() {
     echo "Please enter a MySQL password to use:"
     read -s mysql_password
 
-    # Configure MySQL authentication
-    configure_mysql_authentication "$mysql_root_password" "$mysql_password"
-
     echo "Encrypting and storing credentials..."
-    echo "const crypto = require('crypto'); const fs = require('fs'); const algorithm = 'aes-256-cbc'; const key = crypto.randomBytes(32); const iv = crypto.randomBytes(16); const cipher = crypto.createCipheriv(algorithm, key, iv); let data = JSON.stringify({ username: '$mysql_username', password: '$mysql_password' }); let crypted = cipher.update(data, 'utf8', 'hex'); crypted += cipher.final('hex'); fs.writeFileSync('$config_path', JSON.stringify({ key: key.toString('hex'), iv: iv.toString('hex'), encrypted: crypted }));" | node
-
+    echo "const crypto = require('crypto'); const fs = require('fs'); const algorithm = 'aes-256-cbc'; const key = crypto.randomBytes(32); const iv = crypto.randomBytes(16); const cipher = crypto.createCipheriv(algorithm, key, iv); let crypted = cipher.update('$mysql_username:$mysql_password', 'utf8', 'hex'); crypted += cipher.final('hex'); fs.writeFileSync('$config_path', JSON.stringify({ key: key.toString('hex'), iv: iv.toString('hex'), encrypted: crypted }));" | node
     if [ $? -ne 0 ]; then
         echo "Failed to encrypt and store credentials."
         exit 1
@@ -99,6 +84,9 @@ run_database_init_script() {
     source ~/tax_prep_venv/bin/activate
     curl -sSL https://raw.githubusercontent.com/ethanreddick/tax-prep-tracker/main/init_db.py -o init_db.py
     python3 init_db.py "$mysql_username" "$mysql_password"
+
+    echo "Configuring MySQL authentication plugin..."
+    mysql -u "$mysql_username" -p"$mysql_password" -e "ALTER USER '$mysql_username'@'localhost' IDENTIFIED WITH mysql_native_password BY '$mysql_password'; FLUSH PRIVILEGES;"
 }
 
 # Main function to perform checks
