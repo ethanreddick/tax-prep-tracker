@@ -37,7 +37,59 @@ body {
     background-color: #c0c0c0;
 }
 
-#mainContent {
-    margin-top: 20px;
+#mainContent form {
+    margin: 20px auto;
     padding: 20px;
+    background: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 10px; /* Added rounded edges */
+    width: 60%; /* Adjust based on your preference */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Optional: adds depth */
+    text-align: center;
+    position: relative; /* To position the messages */
+}
+
+.form-group {
+    display: flex;
+    justify-content: space-between;
+    margin: 10px 0;
+    width: 100%;
+}
+
+.form-group label {
+    flex: 0 0 150px; /* Fixed width for labels */
+    text-align: left; /* Align text to the left */
+}
+
+.form-group input {
+    flex: 1; /* Allows input to fill the space */
+    padding: 8px;
+    border: 1px solid #ccc;
+}
+
+.action-btn {
+    margin-top: 20px; /* Added more padding above the button */
+}
+
+#success-message,
+#error-message {
+    margin-top: 20px; /* Space above the messages */
+    padding: 10px;
+    border-radius: 5px;
+    display: none; /* Hidden by default */
+    width: 90%; /* Adjust width as needed */
+    margin: 20px auto; /* Center the message */
+}
+
+#success-message {
+    color: darkgreen;
+    background-color: #e6f5e6;
+    border: 1px solid darkgreen;
+}
+
+#error-message {
+    color: darkred;
+    background-color: #f5e6e6;
+    border: 1px solid darkred;
+    cursor: pointer; /* Indicates clickable */
 }
