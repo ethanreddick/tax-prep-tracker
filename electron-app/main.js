@@ -16,8 +16,8 @@ db.closeConnection();
 function createWindow() {
   // Create the browser window.
   let win = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1200,
+    height: 900,
     webPreferences: {
       nodeIntegration: true,
     },

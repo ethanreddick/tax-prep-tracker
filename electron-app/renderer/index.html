@@ -1,11 +1,59 @@
 <!doctype html>
 <html>
     <head>
+        <title>Dease Tax Prep Tracker</title>
         <link rel="stylesheet" type="text/css" href="styles.css" />
     </head>
     <body>
-        <h1>Hello from Electron!</h1>
-        <button onclick="sayHello()">Click me!</button>
+        <div id="navbar">
+            <div class="info-box" id="clients-box">
+                <h2>Clients</h2>
+                <button class="action-btn" onclick="addClient()">Add</button>
+                <button class="action-btn" onclick="updateClient()">
+                    Update
+                </button>
+                <button class="action-btn" onclick="removeClient()">
+                    Remove
+                </button>
+            </div>
+            <div class="info-box" id="accounts-box">
+                <h2>Accounts</h2>
+                <button class="action-btn" onclick="addAccount()">Add</button>
+                <button class="action-btn" onclick="updateAccount()">
+                    Update
+                </button>
+                <button class="action-btn" onclick="removeAccount()">
+                    Remove
+                </button>
+            </div>
+            <div class="info-box" id="transactions-box">
+                <h2>Transactions</h2>
+                <button class="action-btn" onclick="addTransaction()">
+                    Add
+                </button>
+                <button class="action-btn" onclick="updateTransaction()">
+                    Update
+                </button>
+                <button class="action-btn" onclick="removeTransaction()">
+                    Remove
+                </button>
+            </div>
+            <div class="info-box" id="reports-box">
+                <h2>Reports</h2>
+                <button class="action-btn" onclick="showBalanceSheet()">
+                    Balance Sheet
+                </button>
+                <button class="action-btn" onclick="showIncomeStatement()">
+                    Income Statement
+                </button>
+                <button class="action-btn" onclick="showTrialBalance()">
+                    Trial Balance
+                </button>
+            </div>
+        </div>
+        <div id="mainContent">
+            <!-- Content will be loaded here based on the selection -->
+        </div>
         <script src="scripts.js"></script>
     </body>
 </html>
