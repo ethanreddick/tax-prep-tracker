@@ -31,10 +31,9 @@ const addClientFormHTML = `
 // Update Client Form
 const updateClientFormHTML = `
     <h1>Update Client</h1>
-    <select id="clientSelect" onchange="loadClientData()">
+    <select id="clientSelect" onchange="loadClientData(this.value)">
         <!-- Options will be loaded here -->
     </select>
-    <button type="button" onclick="prepareUpdateClient()">Load Client</button>
     <form id="updateClientForm">
         <div class="form-group">
             <label for="updateName">Name:</label>
@@ -207,11 +206,38 @@ function loadClients(selectId) {
   // Fetch clients from the database
   window.electronAPI.fetchClients().then((clients) => {
     clients.forEach((client) => {
-      let option = new Option(client.name, client.id);
+      let option = new Option(client.name, client.client_id);
       select.add(option);
     });
+
+    // Automatically load the first client's data if available
+    if (clients.length > 0) {
+      loadClientData(clients[0].client_id);
+    }
+  });
+
+  // Add an event listener to load client data when a new client is selected
+  select.addEventListener("change", (event) => {
+    const clientId = event.target.value;
+    console.log("Selected client ID:", clientId);
+    loadClientData(clientId);
   });
 }
+
+// Load the selected client's data into the form fields
+function loadClientData(clientId) {
+  console.log("Loading client data for ID:", clientId);
+  window.electronAPI.fetchClient(clientId).then((client) => {
+    console.log("Client data received:", client);
+    document.getElementById("updateName").value = client.name;
+    document.getElementById("updateSSN").value = client.ssn;
+    document.getElementById("updateAddress").value = client.address;
+    document.getElementById("updateBank").value = client.bank;
+  });
+}
+
+// Ensure that the DOM is fully loaded before adding event listeners
+document.addEventListener("DOMContentLoaded", addEventListeners);
 
 // Manage Account
 function addAccount() {

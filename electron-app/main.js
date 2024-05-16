@@ -37,6 +37,8 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
+      enableRemoteModule: false,
+      nodeIntegration: false,
     },
   });
 
@@ -46,34 +48,16 @@ function createWindow() {
 
 app.on("ready", createWindow);
 
-// Handle adding a client
-ipcMain.handle("add-client", async (event, client) => {
-  return new Promise((resolve, reject) => {
-    const sql =
-      "INSERT INTO clients (name, ssn, address, bank) VALUES (?, ?, ?, ?)";
-    connection.query(
-      sql,
-      [client.name, client.ssn, client.address, client.bank],
-      (error, results) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve({ success: true });
-        }
-      },
-    );
-  });
-});
-
-// Handle fetching clients
 ipcMain.handle("fetch-clients", async () => {
   return new Promise((resolve, reject) => {
     connection.query(
       "SELECT client_id, name FROM clients",
       (error, results) => {
         if (error) {
+          console.error("Error fetching clients:", error);
           reject(error);
         } else {
+          console.log("Clients fetched:", results);
           resolve(results);
         }
       },
@@ -81,35 +65,75 @@ ipcMain.handle("fetch-clients", async () => {
   });
 });
 
-// Handle updating a client
-ipcMain.handle("update-client", async (event, client) => {
+ipcMain.handle("fetch-client", async (event, clientId) => {
+  console.log("Fetching client data for ID:", clientId);
   return new Promise((resolve, reject) => {
-    const sql =
-      "UPDATE clients SET name = ?, ssn = ?, address = ?, bank = ? WHERE id = ?";
     connection.query(
-      sql,
-      [client.name, client.ssn, client.address, client.bank, client.id],
+      "SELECT * FROM clients WHERE client_id = ?",
+      [clientId],
       (error, results) => {
         if (error) {
+          console.error("Error fetching client data:", error);
           reject(error);
         } else {
-          resolve({ success: true });
+          console.log("Client data fetched:", results[0]);
+          resolve(results[0]);
         }
       },
     );
   });
 });
 
-// Handle removing a client
+ipcMain.handle("add-client", async (event, client) => {
+  return new Promise((resolve, reject) => {
+    connection.query(
+      "INSERT INTO clients (name, ssn, address, bank) VALUES (?, ?, ?, ?)",
+      [client.name, client.ssn, client.address, client.bank],
+      (error, results) => {
+        if (error) {
+          console.error("Error adding client:", error);
+          reject(error);
+        } else {
+          console.log("Client added:", results);
+          resolve(results);
+        }
+      },
+    );
+  });
+});
+
+ipcMain.handle("update-client", async (event, client) => {
+  return new Promise((resolve, reject) => {
+    connection.query(
+      "UPDATE clients SET name = ?, ssn = ?, address = ?, bank = ? WHERE client_id = ?",
+      [client.name, client.ssn, client.address, client.bank, client.id],
+      (error, results) => {
+        if (error) {
+          console.error("Error updating client:", error);
+          reject(error);
+        } else {
+          console.log("Client updated:", results);
+          resolve(results);
+        }
+      },
+    );
+  });
+});
+
 ipcMain.handle("remove-client", async (event, clientId) => {
   return new Promise((resolve, reject) => {
-    const sql = "DELETE FROM clients WHERE id = ?";
-    connection.query(sql, [clientId], (error, results) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve({ success: true });
-      }
-    });
+    connection.query(
+      "DELETE FROM clients WHERE client_id = ?",
+      [clientId],
+      (error, results) => {
+        if (error) {
+          console.error("Error removing client:", error);
+          reject(error);
+        } else {
+          console.log("Client removed:", results);
+          resolve(results);
+        }
+      },
+    );
   });
 });
