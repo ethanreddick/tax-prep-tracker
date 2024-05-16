@@ -42,11 +42,10 @@ body {
     padding: 20px;
     background: #f9f9f9;
     border: 1px solid #ccc;
-    border-radius: 10px; /* Added rounded edges */
     width: 60%; /* Adjust based on your preference */
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Optional: adds depth */
     text-align: center;
-    position: relative; /* To position the messages */
+    border-radius: 10px; /* Adds rounded edges */
 }
 
 .form-group {
@@ -61,10 +60,21 @@ body {
     text-align: left; /* Align text to the left */
 }
 
-.form-group input {
+.form-group input,
+.form-group select {
     flex: 1; /* Allows input to fill the space */
     padding: 8px;
     border: 1px solid #ccc;
+    font-size: 16px; /* Increase font size for readability */
+}
+
+/* Center the select dropdown and increase its size */
+.form-group select {
+    flex: 1;
+    padding: 10px;
+    font-size: 16px;
+    max-width: 100%; /* Ensure it doesn't overflow */
+    margin-right: 10px; /* Add some space between the select and button */
 }
 
 .action-btn {

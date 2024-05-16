@@ -30,11 +30,14 @@ const addClientFormHTML = `
 
 // Update Client Form
 const updateClientFormHTML = `
-    <h1>Update Client</h1>
-    <select id="clientSelect" onchange="loadClientData(this.value)">
-        <!-- Options will be loaded here -->
-    </select>
     <form id="updateClientForm">
+        <h2>Update Client</h2>
+        <div class="form-group">
+            <label for="clientSelect">Select Client:</label>
+            <select id="clientSelect" onchange="loadClientData()">
+                <!-- Options will be loaded here -->
+            </select>
+        </div>
         <div class="form-group">
             <label for="updateName">Name:</label>
             <input type="text" id="updateName" name="name">
@@ -58,12 +61,17 @@ const updateClientFormHTML = `
 
 // Remove Client Form
 const removeClientFormHTML = `
-    <h1>Remove Client</h1>
-    <select id="removeClientSelect">
-        <!-- Options will be loaded here -->
-    </select>
-    <button type="button" class="action-btn" onclick="submitRemoveClient()">Remove Client</button>
-    <p id="removeClientMessage" style="color: darkgreen;"></p>
+    <form id="removeClientForm">
+        <h2>Remove Client</h2>
+        <div class="form-group">
+            <label for="removeClientSelect">Select Client:</label>
+            <select id="removeClientSelect">
+                <!-- Options will be loaded here -->
+            </select>
+            <button type="button" class="action-btn" onclick="submitRemoveClient()">Remove Client</button>
+        </div>
+        <p id="removeClientMessage" style="color: darkgreen;"></p>
+    </form>
 `;
 
 // Event listeners for the buttons
