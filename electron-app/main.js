@@ -68,13 +68,16 @@ ipcMain.handle("add-client", async (event, client) => {
 // Handle fetching clients
 ipcMain.handle("fetch-clients", async () => {
   return new Promise((resolve, reject) => {
-    connection.query("SELECT id, name FROM clients", (error, results) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(results);
-      }
-    });
+    connection.query(
+      "SELECT client_id, name FROM clients",
+      (error, results) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(results);
+        }
+      },
+    );
   });
 });
 
