@@ -23,7 +23,7 @@ const addClientFormHTML = `
             <label for="bank">Bank:</label>
             <input type="text" id="bank" name="bank">
         </div>
-        <button type="button" class="action-btn" onclick="submitAddClient()" id="addClientButton">Add Client</button>
+        <button type="button" class="action-btn" onclick="submitAddClient()">Add Client</button>
         <p id="addClientMessage" style="color: darkgreen;"></p>
     </form>
 `;
@@ -32,13 +32,10 @@ const addClientFormHTML = `
 const updateClientFormHTML = `
     <form id="updateClientForm">
         <h2>Update Client</h2>
-        <div class="form-group">
-            <label for="clientSelect">Select Client:</label>
-            <select id="clientSelect">
-                <option value="" disabled selected>Select Client</option>
-                <!-- Options will be loaded here -->
-            </select>
-        </div>
+        <select id="clientSelect" onchange="loadClientData(this.value)">
+            <option value="" disabled selected>Select Client</option>
+            <!-- Options will be loaded here -->
+        </select>
         <div class="form-group">
             <label for="updateName">Name:</label>
             <input type="text" id="updateName" name="name">
@@ -64,12 +61,9 @@ const updateClientFormHTML = `
 const removeClientFormHTML = `
     <form id="removeClientForm">
         <h2>Remove Client</h2>
-        <div class="form-group">
-            <label for="removeClientSelect">Select Client:</label>
-            <select id="removeClientSelect">
-                <!-- Options will be loaded here -->
-            </select>
-        </div>
+        <select id="removeClientSelect">
+            <!-- Options will be loaded here -->
+        </select>
         <button type="button" class="action-btn" onclick="submitRemoveClient()">Remove Client</button>
         <p id="removeClientMessage" style="color: darkgreen;"></p>
     </form>
@@ -154,17 +148,10 @@ function submitAddClient() {
     .then((response) => {
       document.getElementById("addClientMessage").innerText =
         `${client.name} was successfully added to the database.`;
-      const addButton = document.getElementById("addClientButton");
-      addButton.innerText = "Add Another Client";
-      addButton.onclick = () => {
-        document.getElementById("name").value = "";
-        document.getElementById("ssn").value = "";
-        document.getElementById("address").value = "";
-        document.getElementById("bank").value = "";
-        document.getElementById("addClientMessage").innerText = "";
-        addButton.innerText = "Add Client";
-        addButton.onclick = submitAddClient;
-      };
+      document.querySelector("#addClientForm button").innerText =
+        "Add Another Client";
+      document.querySelector("#addClientForm button").onclick =
+        resetAddClientForm;
     })
     .catch((error) => {
       document.getElementById("addClientMessage").innerText =
@@ -173,6 +160,17 @@ function submitAddClient() {
       document.getElementById("addClientMessage").onclick = () =>
         alert(error.message);
     });
+}
+
+// Reset the add client form
+function resetAddClientForm() {
+  document.getElementById("name").value = "";
+  document.getElementById("ssn").value = "";
+  document.getElementById("address").value = "";
+  document.getElementById("bank").value = "";
+  document.querySelector("#addClientForm button").innerText = "Add Client";
+  document.querySelector("#addClientForm button").onclick = submitAddClient;
+  document.getElementById("addClientMessage").innerText = "";
 }
 
 // Update client details in the database
@@ -201,11 +199,6 @@ function submitUpdateClient() {
 }
 
 // Remove a client from the database
-function removeClient() {
-  updateMainContent(removeClientFormHTML);
-  loadClients("removeClientSelect");
-}
-
 function submitRemoveClient() {
   let clientId = document.getElementById("removeClientSelect").value;
 
@@ -227,43 +220,27 @@ function submitRemoveClient() {
 // Load clients into a select element
 function loadClients(selectId) {
   const select = document.getElementById(selectId);
-  select.innerHTML = ""; // Clear existing options
+  select.innerHTML =
+    "<option value='' disabled selected>Select Client</option>"; // Clear existing options and add placeholder
   // Fetch clients from the database
   window.electronAPI.fetchClients().then((clients) => {
-    let placeholderOption = new Option("Select Client", "");
-    placeholderOption.disabled = true;
-    placeholderOption.selected = true;
-    select.add(placeholderOption);
-
     clients.forEach((client) => {
       let option = new Option(client.name, client.client_id);
       select.add(option);
     });
   });
-
-  // Add an event listener to load client data when a new client is selected
-  select.addEventListener("change", (event) => {
-    const clientId = event.target.value;
-    if (clientId) {
-      loadClientData(clientId);
-    }
-  });
 }
 
 // Load the selected client's data into the form fields
 function loadClientData(clientId) {
-  console.log("Loading client data for ID:", clientId);
+  if (!clientId) return;
   window.electronAPI.fetchClient(clientId).then((client) => {
-    console.log("Client data received:", client);
     document.getElementById("updateName").value = client.name;
     document.getElementById("updateSSN").value = client.ssn;
     document.getElementById("updateAddress").value = client.address;
     document.getElementById("updateBank").value = client.bank;
   });
 }
-
-// Ensure that the DOM is fully loaded before adding event listeners
-document.addEventListener("DOMContentLoaded", addEventListeners);
 
 // Manage Account
 function addAccount() {

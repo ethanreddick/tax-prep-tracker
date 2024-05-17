@@ -42,76 +42,76 @@ body {
     padding: 20px;
     background: #f9f9f9;
     border: 1px solid #ccc;
-    width: 60%; /* Adjust based on your preference */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Optional: adds depth */
+    width: 60%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     text-align: center;
-    border-radius: 10px; /* Adds rounded edges */
+    border-radius: 10px;
 }
 
 .form-group {
     display: flex;
-    align-items: center; /* Center align labels with their corresponding field */
     justify-content: space-between;
-    margin: 10px 0;
+    margin: 10px 0; /* Default margin for vertical spacing */
     width: 100%;
 }
 
 .form-group label {
-    flex: 0 0 150px; /* Adjust label width as needed */
+    flex: 0 0 120px; /* Adjust this value as needed */
     text-align: left; /* Align text to the left */
+    display: flex;
+    align-items: center; /* Center vertically */
 }
 
-.form-group input,
-.form-group select {
+.form-group input {
     flex: 1; /* Allows input to fill the space */
     padding: 8px;
     border: 1px solid #ccc;
-    font-size: 16px; /* Increase font size for readability */
+    margin-left: -20px; /* Adjust the value to move it to the left */
+    border-radius: 5px; /* Add rounded edges */
 }
 
-/* Center the select dropdown and increase its size */
-.form-group select {
-    flex: 1;
-    padding: 10px;
-    font-size: 16px;
-    max-width: 100%; /* Ensure it doesn't overflow */
-    margin-right: 10px; /* Add some space between the select and button */
+#addClientForm .form-group {
+    margin: 20px 0; /* Increased margin for vertical spacing on Add Client page */
 }
 
-.action-btn {
-    margin-top: 20px; /* Added more padding above the button */
+#clientSelect,
+#removeClientSelect {
+    width: calc(100% - 40px); /* Adjust to match the input fields width */
+    padding: 8px;
+    margin-bottom: 20px; /* Add margin to separate from other elements */
+    border-radius: 5px; /* Add rounded edges */
 }
 
-#success-message,
-#error-message {
-    margin-top: 20px; /* Space above the messages */
-    padding: 10px;
+form h2 {
+    margin-bottom: 20px;
+}
+
+form p {
+    margin-top: 20px;
+}
+
+form button {
+    margin-top: 20px;
+}
+
+#updateClientForm,
+#removeClientForm {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+#updateClientForm #clientSelect,
+#removeClientForm #removeClientSelect {
+    margin-bottom: 40px;
+    padding: 8px;
+    border: 1px solid #ccc;
     border-radius: 5px;
-    display: none; /* Hidden by default */
-    width: 90%; /* Adjust width as needed */
-    margin: 20px auto; /* Center the message */
-}
-
-#success-message {
-    color: darkgreen;
-    background-color: #e6f5e6;
-    border: 1px solid darkgreen;
-}
-
-#error-message {
-    color: darkred;
-    background-color: #f5e6e6;
-    border: 1px solid darkred;
-    cursor: pointer; /* Indicates clickable */
-}
-
-#removeClientForm .form-group {
-    justify-content: center; /* Center align the form elements */
+    width: calc(100% - 160px); /* Align with form-group input fields */
+    max-width: 500px; /* Ensure maximum width */
 }
 
 #removeClientForm button {
-    margin-top: 20px; /* Add some space between the select and the button */
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
+    margin-top: 20px;
 }
