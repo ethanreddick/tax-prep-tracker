@@ -33,7 +33,7 @@ function createWindow() {
   // Create the browser window.
   let win = new BrowserWindow({
     width: 1200,
-    height: 800,
+    height: 900,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -54,10 +54,8 @@ ipcMain.handle("fetch-clients", async () => {
       "SELECT client_id, name FROM clients",
       (error, results) => {
         if (error) {
-          console.error("Error fetching clients:", error);
           reject(error);
         } else {
-          console.log("Clients fetched:", results);
           resolve(results);
         }
       },
@@ -66,17 +64,14 @@ ipcMain.handle("fetch-clients", async () => {
 });
 
 ipcMain.handle("fetch-client", async (event, clientId) => {
-  console.log("Fetching client data for ID:", clientId);
   return new Promise((resolve, reject) => {
     connection.query(
       "SELECT * FROM clients WHERE client_id = ?",
       [clientId],
       (error, results) => {
         if (error) {
-          console.error("Error fetching client data:", error);
           reject(error);
         } else {
-          console.log("Client data fetched:", results[0]);
           resolve(results[0]);
         }
       },
@@ -91,10 +86,8 @@ ipcMain.handle("add-client", async (event, client) => {
       [client.name, client.ssn, client.address, client.bank],
       (error, results) => {
         if (error) {
-          console.error("Error adding client:", error);
           reject(error);
         } else {
-          console.log("Client added:", results);
           resolve(results);
         }
       },
@@ -109,10 +102,8 @@ ipcMain.handle("update-client", async (event, client) => {
       [client.name, client.ssn, client.address, client.bank, client.id],
       (error, results) => {
         if (error) {
-          console.error("Error updating client:", error);
           reject(error);
         } else {
-          console.log("Client updated:", results);
           resolve(results);
         }
       },
@@ -127,10 +118,98 @@ ipcMain.handle("remove-client", async (event, clientId) => {
       [clientId],
       (error, results) => {
         if (error) {
-          console.error("Error removing client:", error);
           reject(error);
         } else {
-          console.log("Client removed:", results);
+          resolve(results);
+        }
+      },
+    );
+  });
+});
+
+ipcMain.handle("add-account", async (event, account) => {
+  return new Promise((resolve, reject) => {
+    connection.query(
+      "INSERT INTO accounts (description, account_class, statement_type, account_balance) VALUES (?, ?, ?, ?)",
+      [
+        account.description,
+        account.accountClass,
+        account.statementType,
+        account.accountBalance,
+      ],
+      (error, results) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(results);
+        }
+      },
+    );
+  });
+});
+
+ipcMain.handle("fetch-accounts", async () => {
+  return new Promise((resolve, reject) => {
+    connection.query(
+      "SELECT account_id, description FROM accounts",
+      (error, results) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(results);
+        }
+      },
+    );
+  });
+});
+
+ipcMain.handle("fetch-account", async (event, accountId) => {
+  return new Promise((resolve, reject) => {
+    connection.query(
+      "SELECT * FROM accounts WHERE account_id = ?",
+      [accountId],
+      (error, results) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(results[0]);
+        }
+      },
+    );
+  });
+});
+
+ipcMain.handle("update-account", async (event, account) => {
+  return new Promise((resolve, reject) => {
+    connection.query(
+      "UPDATE accounts SET description = ?, account_class = ?, statement_type = ?, account_balance = ? WHERE account_id = ?",
+      [
+        account.description,
+        account.accountClass,
+        account.statementType,
+        account.accountBalance,
+        account.id,
+      ],
+      (error, results) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(results);
+        }
+      },
+    );
+  });
+});
+
+ipcMain.handle("remove-account", async (event, accountId) => {
+  return new Promise((resolve, reject) => {
+    connection.query(
+      "DELETE FROM accounts WHERE account_id = ?",
+      [accountId],
+      (error, results) => {
+        if (error) {
+          reject(error);
+        } else {
           resolve(results);
         }
       },

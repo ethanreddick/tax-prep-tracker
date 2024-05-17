@@ -51,7 +51,7 @@ body {
 .form-group {
     display: flex;
     justify-content: space-between;
-    margin: 10px 0; /* Default margin for vertical spacing */
+    margin: 10px 0;
     width: 100%;
 }
 
@@ -62,16 +62,13 @@ body {
     align-items: center; /* Center vertically */
 }
 
-.form-group input {
+.form-group input,
+.form-group select {
     flex: 1; /* Allows input to fill the space */
     padding: 8px;
     border: 1px solid #ccc;
-    margin-left: -20px; /* Adjust the value to move it to the left */
     border-radius: 5px; /* Add rounded edges */
-}
-
-#addClientForm .form-group {
-    margin: 20px 0; /* Increased margin for vertical spacing on Add Client page */
+    margin-left: -10px; /* Adjust the value to move it to the left */
 }
 
 #clientSelect,
@@ -114,4 +111,10 @@ form button {
 
 #removeClientForm button {
     margin-top: 20px;
+}
+
+/* Increase vertical spacing for Add Client and Add Account form groups */
+#addClientForm .form-group,
+#addAccountForm .form-group {
+    margin-bottom: 20px; /* Match the spacing with the Update Clients page */
 }

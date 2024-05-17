@@ -32,9 +32,8 @@ const addClientFormHTML = `
 const updateClientFormHTML = `
     <form id="updateClientForm">
         <h2>Update Client</h2>
-        <select id="clientSelect" onchange="loadClientData(this.value)">
+        <select id="clientSelect">
             <option value="" disabled selected>Select Client</option>
-            <!-- Options will be loaded here -->
         </select>
         <div class="form-group">
             <label for="updateName">Name:</label>
@@ -62,10 +61,47 @@ const removeClientFormHTML = `
     <form id="removeClientForm">
         <h2>Remove Client</h2>
         <select id="removeClientSelect">
-            <!-- Options will be loaded here -->
+            <option value="" disabled selected>Select Client</option>
         </select>
         <button type="button" class="action-btn" onclick="submitRemoveClient()">Remove Client</button>
         <p id="removeClientMessage" style="color: darkgreen;"></p>
+    </form>
+`;
+
+// Add Account Form
+const addAccountFormHTML = `
+    <form id="addAccountForm">
+        <h2>Add Account</h2>
+        <div class="form-group">
+            <label for="description">Description:</label>
+            <input type="text" id="description" name="description">
+        </div>
+        <div class="form-group">
+            <label for="accountClass">Class:</label>
+            <select id="accountClass" name="accountClass">
+                <option value="" disabled selected>Select Class</option>
+                <option value="Asset">Asset</option>
+                <option value="Liability">Liability</option>
+                <option value="Equity">Equity</option>
+                <option value="Revenue">Revenue</option>
+                <option value="Expense">Expense</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="statementType">Statement:</label>
+            <select id="statementType" name="statementType">
+                <option value="" disabled selected>Select Statement</option>
+                <option value="Balance Sheet">Balance Sheet</option>
+                <option value="Income Statement">Income Statement</option>
+                <option value="Cash Flow Statement">Cash Flow Statement</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="accountBalance">Balance:</label>
+            <input type="number" id="accountBalance" name="accountBalance" step="0.01">
+        </div>
+        <button type="button" class="action-btn" onclick="submitAddAccount()">Add Account</button>
+        <p id="addAccountMessage" style="color: darkgreen;"></p>
     </form>
 `;
 
@@ -97,15 +133,10 @@ function addEventListeners() {
   document
     .getElementById("accounts-box")
     .querySelector("button:nth-child(2)")
-    .addEventListener("click", addAccount);
-  document
-    .getElementById("accounts-box")
-    .querySelector("button:nth-child(3)")
-    .addEventListener("click", updateAccount);
-  document
-    .getElementById("accounts-box")
-    .querySelector("button:nth-child(4)")
-    .addEventListener("click", removeAccount);
+    .addEventListener("click", () => {
+      updateMainContent(addAccountFormHTML);
+    });
+  // Update accounts and remove accounts listeners can be added here similarly
 
   document
     .getElementById("transactions-box")
@@ -134,6 +165,9 @@ function addEventListeners() {
     .addEventListener("click", showTrialBalance);
 }
 
+// Ensure that the DOM is fully loaded before adding event listeners
+document.addEventListener("DOMContentLoaded", addEventListeners);
+
 // Add a new client to the database
 function submitAddClient() {
   let client = {
@@ -146,31 +180,84 @@ function submitAddClient() {
   window.electronAPI
     .addClient(client)
     .then((response) => {
-      document.getElementById("addClientMessage").innerText =
-        `${client.name} was successfully added to the database.`;
-      document.querySelector("#addClientForm button").innerText =
-        "Add Another Client";
-      document.querySelector("#addClientForm button").onclick =
-        resetAddClientForm;
+      const messageElement = document.getElementById("addClientMessage");
+      if (messageElement) {
+        messageElement.innerText = `${client.name} was successfully added to the database.`;
+      }
+
+      // Change button text to "Add Another Client"
+      const addButton = document.querySelector("#addClientForm button");
+      if (addButton) {
+        addButton.innerText = "Add Another Client";
+        addButton.onclick = clearFields; // Set onclick to clear fields
+      }
     })
     .catch((error) => {
-      document.getElementById("addClientMessage").innerText =
-        "There was an error adding the client to the database, click here for details.";
-      document.getElementById("addClientMessage").style.color = "red";
-      document.getElementById("addClientMessage").onclick = () =>
-        alert(error.message);
+      const messageElement = document.getElementById("addClientMessage");
+      if (messageElement) {
+        messageElement.innerText =
+          "There was an error adding the client to the database, click here for details.";
+        messageElement.style.color = "red";
+        messageElement.onclick = () => alert(error.message);
+      }
     });
 }
 
-// Reset the add client form
-function resetAddClientForm() {
+function clearFields() {
+  // Clear input fields
   document.getElementById("name").value = "";
   document.getElementById("ssn").value = "";
   document.getElementById("address").value = "";
   document.getElementById("bank").value = "";
-  document.querySelector("#addClientForm button").innerText = "Add Client";
-  document.querySelector("#addClientForm button").onclick = submitAddClient;
-  document.getElementById("addClientMessage").innerText = "";
+
+  // Change button text back to "Add Client"
+  const addButton = document.querySelector("#addClientForm button");
+  if (addButton) {
+    addButton.innerText = "Add Client";
+    addButton.onclick = submitAddClient; // Reset onclick to submitAddClient
+  }
+
+  // Clear the message element
+  const messageElement = document.getElementById("addClientMessage");
+  if (messageElement) {
+    messageElement.innerText = "";
+    messageElement.style.color = "darkgreen"; // Reset message color
+  }
+}
+
+// Load clients into a select element
+function loadClients(selectId) {
+  const select = document.getElementById(selectId);
+  select.innerHTML = ""; // Clear existing options
+
+  // Add a placeholder option
+  let placeholderOption = new Option("Select Client", "", true, true);
+  placeholderOption.disabled = true;
+  select.add(placeholderOption);
+
+  // Fetch clients from the database
+  window.electronAPI.fetchClients().then((clients) => {
+    clients.forEach((client) => {
+      let option = new Option(client.name, client.client_id);
+      select.add(option);
+    });
+
+    // Add an event listener to load client data when a new client is selected
+    select.addEventListener("change", (event) => {
+      const clientId = event.target.value;
+      loadClientData(clientId);
+    });
+  });
+}
+
+// Load the selected client's data into the form fields
+function loadClientData(clientId) {
+  window.electronAPI.fetchClient(clientId).then((client) => {
+    document.getElementById("updateName").value = client.name;
+    document.getElementById("updateSSN").value = client.ssn;
+    document.getElementById("updateAddress").value = client.address;
+    document.getElementById("updateBank").value = client.bank;
+  });
 }
 
 // Update client details in the database
@@ -200,51 +287,91 @@ function submitUpdateClient() {
 
 // Remove a client from the database
 function submitRemoveClient() {
-  let clientId = document.getElementById("removeClientSelect").value;
+  const clientSelect = document.getElementById("removeClientSelect");
+  const clientId = clientSelect.value;
+  const clientName = clientSelect.options[clientSelect.selectedIndex].text;
 
   window.electronAPI
     .removeClient(clientId)
     .then((response) => {
-      document.getElementById("removeClientMessage").innerText =
-        `Client was successfully removed from the database.`;
+      const messageElement = document.getElementById("removeClientMessage");
+      if (messageElement) {
+        messageElement.innerText = `${clientName} was successfully removed from the database.`;
+      }
+
+      // Refresh the client list after removal
+      loadClients("removeClientSelect");
     })
     .catch((error) => {
-      document.getElementById("removeClientMessage").innerText =
-        "There was an error removing the client from the database, click here for details.";
-      document.getElementById("removeClientMessage").style.color = "red";
-      document.getElementById("removeClientMessage").onclick = () =>
-        alert(error.message);
+      const messageElement = document.getElementById("removeClientMessage");
+      if (messageElement) {
+        messageElement.innerText =
+          "There was an error removing the client from the database, click here for details.";
+        messageElement.style.color = "red";
+        messageElement.onclick = () => alert(error.message);
+      }
     });
-}
-
-// Load clients into a select element
-function loadClients(selectId) {
-  const select = document.getElementById(selectId);
-  select.innerHTML =
-    "<option value='' disabled selected>Select Client</option>";
-  // Fetch clients from the database
-  window.electronAPI.fetchClients().then((clients) => {
-    clients.forEach((client) => {
-      let option = new Option(client.name, client.client_id);
-      select.add(option);
-    });
-  });
-}
-
-// Load the selected client's data into the form fields
-function loadClientData(clientId) {
-  if (!clientId) return;
-  window.electronAPI.fetchClient(clientId).then((client) => {
-    document.getElementById("updateName").value = client.name;
-    document.getElementById("updateSSN").value = client.ssn;
-    document.getElementById("updateAddress").value = client.address;
-    document.getElementById("updateBank").value = client.bank;
-  });
 }
 
 // Manage Account
+function submitAddAccount() {
+  let account = {
+    description: document.getElementById("description").value,
+    accountClass: document.getElementById("accountClass").value,
+    statementType: document.getElementById("statementType").value,
+    accountBalance: parseFloat(document.getElementById("accountBalance").value),
+  };
+
+  window.electronAPI
+    .addAccount(account)
+    .then((response) => {
+      const messageElement = document.getElementById("addAccountMessage");
+      if (messageElement) {
+        messageElement.innerText = `${account.description} was successfully added to the database.`;
+      }
+
+      // Change button text to "Add Another Account"
+      const addButton = document.querySelector("#addAccountForm button");
+      if (addButton) {
+        addButton.innerText = "Add Another Account";
+        addButton.onclick = clearAccountFields; // Set onclick to clear fields
+      }
+    })
+    .catch((error) => {
+      const messageElement = document.getElementById("addAccountMessage");
+      if (messageElement) {
+        messageElement.innerText =
+          "There was an error adding the account to the database, click here for details.";
+        messageElement.style.color = "red";
+        messageElement.onclick = () => alert(error.message);
+      }
+    });
+}
+
+function clearAccountFields() {
+  // Clear input fields
+  document.getElementById("description").value = "";
+  document.getElementById("accountClass").value = "";
+  document.getElementById("statementType").value = "";
+  document.getElementById("accountBalance").value = "";
+
+  // Change button text back to "Add Account"
+  const addButton = document.querySelector("#addAccountForm button");
+  if (addButton) {
+    addButton.innerText = "Add Account";
+    addButton.onclick = submitAddAccount; // Reset onclick to submitAddAccount
+  }
+
+  // Clear the message element
+  const messageElement = document.getElementById("addAccountMessage");
+  if (messageElement) {
+    messageElement.innerText = "";
+    messageElement.style.color = "darkgreen"; // Reset message color
+  }
+}
+
 function addAccount() {
-  document.getElementById("mainContent").innerHTML = "<h1>Add Account</h1>";
+  updateMainContent(addAccountFormHTML);
 }
 
 function updateAccount() {
