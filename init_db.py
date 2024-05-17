@@ -66,6 +66,7 @@ def create_tables(connection):
             account_id INT AUTO_INCREMENT PRIMARY KEY,
             description VARCHAR(255) NOT NULL,
             account_class VARCHAR(255) NOT NULL,
+            statement_type VARCHAR(255) NOT NULL,
             account_balance DECIMAL(10, 2) NOT NULL
         );
         """)
