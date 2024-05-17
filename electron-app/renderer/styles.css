@@ -50,13 +50,14 @@ body {
 
 .form-group {
     display: flex;
+    align-items: center; /* Center align labels with their corresponding field */
     justify-content: space-between;
     margin: 10px 0;
     width: 100%;
 }
 
 .form-group label {
-    flex: 0 0 150px; /* Fixed width for labels */
+    flex: 0 0 150px; /* Adjust label width as needed */
     text-align: left; /* Align text to the left */
 }
 
@@ -102,4 +103,15 @@ body {
     background-color: #f5e6e6;
     border: 1px solid darkred;
     cursor: pointer; /* Indicates clickable */
+}
+
+#removeClientForm .form-group {
+    justify-content: center; /* Center align the form elements */
+}
+
+#removeClientForm button {
+    margin-top: 20px; /* Add some space between the select and the button */
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
 }

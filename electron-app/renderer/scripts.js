@@ -23,7 +23,7 @@ const addClientFormHTML = `
             <label for="bank">Bank:</label>
             <input type="text" id="bank" name="bank">
         </div>
-        <button type="button" class="action-btn" onclick="submitAddClient()">Add Client</button>
+        <button type="button" class="action-btn" onclick="submitAddClient()" id="addClientButton">Add Client</button>
         <p id="addClientMessage" style="color: darkgreen;"></p>
     </form>
 `;
@@ -34,7 +34,8 @@ const updateClientFormHTML = `
         <h2>Update Client</h2>
         <div class="form-group">
             <label for="clientSelect">Select Client:</label>
-            <select id="clientSelect" onchange="loadClientData()">
+            <select id="clientSelect">
+                <option value="" disabled selected>Select Client</option>
                 <!-- Options will be loaded here -->
             </select>
         </div>
@@ -68,8 +69,8 @@ const removeClientFormHTML = `
             <select id="removeClientSelect">
                 <!-- Options will be loaded here -->
             </select>
-            <button type="button" class="action-btn" onclick="submitRemoveClient()">Remove Client</button>
         </div>
+        <button type="button" class="action-btn" onclick="submitRemoveClient()">Remove Client</button>
         <p id="removeClientMessage" style="color: darkgreen;"></p>
     </form>
 `;
@@ -153,6 +154,17 @@ function submitAddClient() {
     .then((response) => {
       document.getElementById("addClientMessage").innerText =
         `${client.name} was successfully added to the database.`;
+      const addButton = document.getElementById("addClientButton");
+      addButton.innerText = "Add Another Client";
+      addButton.onclick = () => {
+        document.getElementById("name").value = "";
+        document.getElementById("ssn").value = "";
+        document.getElementById("address").value = "";
+        document.getElementById("bank").value = "";
+        document.getElementById("addClientMessage").innerText = "";
+        addButton.innerText = "Add Client";
+        addButton.onclick = submitAddClient;
+      };
     })
     .catch((error) => {
       document.getElementById("addClientMessage").innerText =
@@ -189,6 +201,11 @@ function submitUpdateClient() {
 }
 
 // Remove a client from the database
+function removeClient() {
+  updateMainContent(removeClientFormHTML);
+  loadClients("removeClientSelect");
+}
+
 function submitRemoveClient() {
   let clientId = document.getElementById("removeClientSelect").value;
 
@@ -213,22 +230,23 @@ function loadClients(selectId) {
   select.innerHTML = ""; // Clear existing options
   // Fetch clients from the database
   window.electronAPI.fetchClients().then((clients) => {
+    let placeholderOption = new Option("Select Client", "");
+    placeholderOption.disabled = true;
+    placeholderOption.selected = true;
+    select.add(placeholderOption);
+
     clients.forEach((client) => {
       let option = new Option(client.name, client.client_id);
       select.add(option);
     });
-
-    // Automatically load the first client's data if available
-    if (clients.length > 0) {
-      loadClientData(clients[0].client_id);
-    }
   });
 
   // Add an event listener to load client data when a new client is selected
   select.addEventListener("change", (event) => {
     const clientId = event.target.value;
-    console.log("Selected client ID:", clientId);
-    loadClientData(clientId);
+    if (clientId) {
+      loadClientData(clientId);
+    }
   });
 }
 
