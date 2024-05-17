@@ -64,7 +64,8 @@ def create_tables(connection):
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS accounts (
             account_id INT AUTO_INCREMENT PRIMARY KEY,
-            description TEXT NOT NULL,
+            description VARCHAR(255) NOT NULL,
+            account_class VARCHAR(255) NOT NULL,
             account_balance DECIMAL(10, 2) NOT NULL
         );
         """)

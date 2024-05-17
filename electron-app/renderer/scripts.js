@@ -221,7 +221,7 @@ function submitRemoveClient() {
 function loadClients(selectId) {
   const select = document.getElementById(selectId);
   select.innerHTML =
-    "<option value='' disabled selected>Select Client</option>"; // Clear existing options and add placeholder
+    "<option value='' disabled selected>Select Client</option>";
   // Fetch clients from the database
   window.electronAPI.fetchClients().then((clients) => {
     clients.forEach((client) => {
