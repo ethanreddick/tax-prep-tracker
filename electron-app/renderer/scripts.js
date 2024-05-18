@@ -146,6 +146,18 @@ const updateAccountFormHTML = `
     </form>
 `;
 
+// Remove Account Form
+const removeAccountFormHTML = `
+  <form id="removeAccountForm">
+    <h2>Remove Account</h2>
+    <select id="removeAccountSelect">
+      <option value="" disabled selected>Select Account</option>
+    </select>
+    <button type="button" class="action-btn" onclick="submitRemoveAccount()">Remove Account</button>
+    <p id="removeAccountMessage" style="color: darkgreen;"></p>
+  </form>
+`;
+
 // Add Event Listeners to the buttons
 function addEventListeners() {
   document
@@ -452,6 +464,35 @@ function loadAccounts(selectId) {
       loadAccountData(accountId);
     });
   });
+}
+
+// Remove an account from the database
+function submitRemoveAccount() {
+  const accountSelect = document.getElementById("removeAccountSelect");
+  const accountId = accountSelect.value;
+  const accountDescription =
+    accountSelect.options[accountSelect.selectedIndex].text;
+
+  window.electronAPI
+    .removeAccount(accountId)
+    .then((response) => {
+      const messageElement = document.getElementById("removeAccountMessage");
+      if (messageElement) {
+        messageElement.innerText = `${accountDescription} was successfully removed from the database.`;
+      }
+
+      // Refresh the account list after removal
+      loadAccounts("removeAccountSelect");
+    })
+    .catch((error) => {
+      const messageElement = document.getElementById("removeAccountMessage");
+      if (messageElement) {
+        messageElement.innerText =
+          "There was an error removing the account from the database, click here for details.";
+        messageElement.style.color = "red";
+        messageElement.onclick = () => alert(error.message);
+      }
+    });
 }
 
 // Load the selected account's data into the form fields

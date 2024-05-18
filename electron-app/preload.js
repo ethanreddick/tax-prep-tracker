@@ -10,4 +10,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   fetchAccounts: () => ipcRenderer.invoke("fetch-accounts"),
   fetchAccount: (accountId) => ipcRenderer.invoke("fetch-account", accountId),
   updateAccount: (account) => ipcRenderer.invoke("update-account", account),
+  removeAccount: (accountId) => ipcRenderer.invoke("remove-account", accountId),
 });
