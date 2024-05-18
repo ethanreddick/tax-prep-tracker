@@ -105,7 +105,48 @@ const addAccountFormHTML = `
     </form>
 `;
 
-// Event listeners for the buttons
+// Update Account Form
+const updateAccountFormHTML = `
+    <form id="updateAccountForm">
+        <h2>Update Account</h2>
+        <select id="accountSelect">
+            <option value="" selected disabled>Select Account</option>
+            <!-- Options will be loaded here -->
+        </select>
+        <div class="form-group">
+            <label for="updateDescription">Description:</label>
+            <input type="text" id="updateDescription" name="description">
+        </div>
+        <div class="form-group">
+            <label for="updateClass">Class:</label>
+            <select id="updateClass" name="account_class">
+                <option value="" selected disabled>Select Class</option>
+                <option value="Asset">Asset</option>
+                <option value="Liability">Liability</option>
+                <option value="Equity">Equity</option>
+                <option value="Revenue">Revenue</option>
+                <option value="Expense">Expense</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="updateStatement">Statement:</label>
+            <select id="updateStatement" name="statement_type">
+                <option value="" selected disabled>Select Statement</option>
+                <option value="Balance Sheet">Balance Sheet</option>
+                <option value="Income Statement">Income Statement</option>
+                <option value="Cash Flow Statement">Cash Flow Statement</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="updateBalance">Balance:</label>
+            <input type="number" id="updateBalance" name="account_balance" step="0.01">
+        </div>
+        <button type="button" class="action-btn" onclick="submitUpdateAccount()">Update Account</button>
+        <p id="updateAccountMessage" style="color: darkgreen;"></p>
+    </form>
+`;
+
+// Add Event Listeners to the buttons
 function addEventListeners() {
   document
     .getElementById("clients-box")
@@ -136,7 +177,22 @@ function addEventListeners() {
     .addEventListener("click", () => {
       updateMainContent(addAccountFormHTML);
     });
-  // Update accounts and remove accounts listeners can be added here similarly
+
+  document
+    .getElementById("accounts-box")
+    .querySelector("button:nth-child(3)")
+    .addEventListener("click", () => {
+      updateMainContent(updateAccountFormHTML);
+      loadAccounts("accountSelect");
+    });
+
+  document
+    .getElementById("accounts-box")
+    .querySelector("button:nth-child(4)")
+    .addEventListener("click", () => {
+      updateMainContent(removeAccountFormHTML);
+      loadAccounts("removeAccountSelect");
+    });
 
   document
     .getElementById("transactions-box")
@@ -346,6 +402,66 @@ function submitAddAccount() {
         messageElement.onclick = () => alert(error.message);
       }
     });
+}
+
+// Update account details in the database
+function submitUpdateAccount() {
+  let account = {
+    id: document.getElementById("accountSelect").value,
+    description: document.getElementById("updateDescription").value,
+    account_class: document.getElementById("updateClass").value,
+    statement_type: document.getElementById("updateStatement").value,
+    account_balance: parseFloat(document.getElementById("updateBalance").value),
+  };
+
+  window.electronAPI
+    .updateAccount(account)
+    .then((response) => {
+      document.getElementById("updateAccountMessage").innerText =
+        `${account.description} was successfully updated in the database.`;
+    })
+    .catch((error) => {
+      document.getElementById("updateAccountMessage").innerText =
+        "There was an error updating the account in the database, click here for details.";
+      document.getElementById("updateAccountMessage").style.color = "red";
+      document.getElementById("updateAccountMessage").onclick = () =>
+        alert(error.message);
+    });
+}
+
+// Load accounts into a select element
+function loadAccounts(selectId) {
+  const select = document.getElementById(selectId);
+  select.innerHTML = ""; // Clear existing options
+
+  // Add a placeholder option
+  let placeholderOption = new Option("Select Account", "", true, true);
+  placeholderOption.disabled = true;
+  select.add(placeholderOption);
+
+  // Fetch accounts from the database
+  window.electronAPI.fetchAccounts().then((accounts) => {
+    accounts.forEach((account) => {
+      let option = new Option(account.description, account.account_id);
+      select.add(option);
+    });
+
+    // Add event listener to load account data when a new account is selected
+    select.addEventListener("change", (event) => {
+      const accountId = event.target.value;
+      loadAccountData(accountId);
+    });
+  });
+}
+
+// Load the selected account's data into the form fields
+function loadAccountData(accountId) {
+  window.electronAPI.fetchAccount(accountId).then((account) => {
+    document.getElementById("updateDescription").value = account.description;
+    document.getElementById("updateClass").value = account.account_class;
+    document.getElementById("updateStatement").value = account.statement_type;
+    document.getElementById("updateBalance").value = account.account_balance;
+  });
 }
 
 function clearAccountFields() {

@@ -72,7 +72,8 @@ body {
 }
 
 #clientSelect,
-#removeClientSelect {
+#removeClientSelect,
+#accountSelect {
     width: calc(100% - 40px); /* Adjust to match the input fields width */
     padding: 8px;
     margin-bottom: 20px; /* Add margin to separate from other elements */
@@ -92,6 +93,7 @@ form button {
 }
 
 #updateClientForm,
+#updateAccountForm,
 #removeClientForm {
     display: flex;
     flex-direction: column;
@@ -100,7 +102,8 @@ form button {
 }
 
 #updateClientForm #clientSelect,
-#removeClientForm #removeClientSelect {
+#removeClientForm #removeClientSelect,
+#updateAccountForm #accountSelect {
     margin-bottom: 40px;
     padding: 8px;
     border: 1px solid #ccc;
@@ -117,4 +120,16 @@ form button {
 #addClientForm .form-group,
 #addAccountForm .form-group {
     margin-bottom: 20px; /* Match the spacing with the Update Clients page */
+}
+
+/* Specific styling for Update Account page */
+#updateAccountForm {
+    margin: 20px auto;
+    padding: 20px;
+    background: #f9f9f9;
+    border: 1px solid #ccc;
+    width: 60%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    border-radius: 10px;
 }

@@ -185,9 +185,9 @@ ipcMain.handle("update-account", async (event, account) => {
       "UPDATE accounts SET description = ?, account_class = ?, statement_type = ?, account_balance = ? WHERE account_id = ?",
       [
         account.description,
-        account.accountClass,
-        account.statementType,
-        account.accountBalance,
+        account.account_class,
+        account.statement_type,
+        account.account_balance,
         account.id,
       ],
       (error, results) => {
