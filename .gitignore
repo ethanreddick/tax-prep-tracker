@@ -3,3 +3,6 @@ node_modules/
 
 # Todo list
 todo.txt
+
+# Config file storing locally generated secrets at install time
+config.json
