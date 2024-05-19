@@ -75,14 +75,20 @@ def create_tables(connection):
         CREATE TABLE IF NOT EXISTS transactions (
             transaction_id INT AUTO_INCREMENT PRIMARY KEY,
             client_id INT,
-            debit_account_id INT,
-            credit_account_id INT,
-            transaction_amount DECIMAL(10, 2),
             transaction_date DATE NOT NULL,
             description TEXT,
-            FOREIGN KEY (client_id) REFERENCES clients(client_id),
-            FOREIGN KEY (debit_account_id) REFERENCES accounts(account_id),
-            FOREIGN KEY (credit_account_id) REFERENCES accounts(account_id)
+            FOREIGN KEY (client_id) REFERENCES clients(client_id)
+        );
+        """)
+        # Transaction lines table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS transaction_lines (
+            transaction_line_id INT AUTO_INCREMENT PRIMARY KEY,
+            transaction_id INT,
+            account_id INT,
+            amount DECIMAL(10, 2) NOT NULL,
+            FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id),
+            FOREIGN KEY (account_id) REFERENCES accounts(account_id)
         );
         """)
         connection.commit()
