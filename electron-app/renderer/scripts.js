@@ -158,6 +158,55 @@ const removeAccountFormHTML = `
   </form>
 `;
 
+// Add Transaction Form
+const addTransactionFormHTML = `
+    <form id="addTransactionForm">
+        <h2>Add Transaction</h2>
+        <div class="form-group">
+            <label for="transactionClient">Client:</label>
+            <select id="transactionClient" name="transactionClient">
+                <option value="" disabled selected>Select Client</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="transactionDescription">Description:</label>
+            <input type="text" id="transactionDescription" name="transactionDescription">
+        </div>
+        <div class="form-group">
+            <label for="transactionDate">Date:</label>
+            <input type="date" id="transactionDate" name="transactionDate">
+        </div>
+        <div id="transactionLines">
+            <div class="transaction-line">
+                <select class="transactionAccount" name="transactionAccount">
+                    <option value="" disabled selected>Select Account</option>
+                </select>
+                <select class="transactionType" name="transactionType">
+                    <option value="Debit" selected>Debit</option>
+                    <option value="Credit">Credit</option>
+                </select>
+                <input type="number" class="transactionAmount" name="transactionAmount" placeholder="Amount" step="0.01">
+            </div>
+            <div class="transaction-line">
+                <select class="transactionAccount" name="transactionAccount">
+                    <option value="" disabled selected>Select Account</option>
+                </select>
+                <select class="transactionType" name="transactionType">
+                    <option value="Debit">Debit</option>
+                    <option value="Credit" selected>Credit</option>
+                </select>
+                <input type="number" class="transactionAmount" name="transactionAmount" placeholder="Amount" step="0.01">
+            </div>
+        </div>
+        <button type="button" class="action-btn" onclick="addTransactionLine()">+ Add Account</button>
+        <div class="submit-container">
+            <button type="button" class="action-btn" onclick="submitAddTransaction()">Submit Transaction</button>
+            <p id="netAmount" style="text-align: right;">Net: $0.00</p>
+        </div>
+        <p id="addTransactionMessage" style="color: darkgreen;"></p>
+    </form>
+`;
+
 // Add Event Listeners to the buttons
 function addEventListeners() {
   document
@@ -209,7 +258,12 @@ function addEventListeners() {
   document
     .getElementById("transactions-box")
     .querySelector("button:nth-child(2)")
-    .addEventListener("click", addTransaction);
+    .addEventListener("click", () => {
+      updateMainContent(addTransactionFormHTML);
+      loadClientsForTransaction();
+      loadAccountsForTransactionLines();
+    });
+
   document
     .getElementById("transactions-box")
     .querySelector("button:nth-child(3)")
@@ -526,6 +580,149 @@ function clearAccountFields() {
     messageElement.style.color = "darkgreen"; // Reset message color
   }
 }
+
+// Function to add a new transaction line
+function addTransactionLine() {
+  const transactionLines = document.getElementById("transactionLines");
+  const newLine = document.createElement("div");
+  newLine.classList.add("transaction-line");
+  newLine.innerHTML = `
+        <select class="transactionAccount" name="transactionAccount">
+            <option value="" disabled selected>Select Account</option>
+        </select>
+        <select class="transactionType" name="transactionType">
+            <option value="Debit" selected>Debit</option>
+            <option value="Credit">Credit</option>
+        </select>
+        <input type="number" class="transactionAmount" name="transactionAmount" placeholder="Amount" step="0.01">
+    `;
+  transactionLines.appendChild(newLine);
+  loadAccountsForTransactionLines();
+}
+
+// Function to remove a transaction line
+function removeTransactionLine(button) {
+  button.parentElement.remove();
+  updateNetAmount();
+}
+
+// Function to load clients into the transaction client dropdown
+function loadClientsForTransaction() {
+  const clientSelect = document.getElementById("transactionClient");
+  clientSelect.innerHTML = ""; // Clear existing options
+
+  // Add a placeholder option
+  let placeholderOption = new Option("Select Client", "", true, true);
+  placeholderOption.disabled = true;
+  clientSelect.add(placeholderOption);
+
+  // Fetch clients from the database
+  window.electronAPI.fetchClients().then((clients) => {
+    clients.forEach((client) => {
+      let option = new Option(client.name, client.client_id);
+      clientSelect.add(option);
+    });
+  });
+}
+
+// Function to load accounts into each transaction account dropdown
+function loadAccountsForTransactionLines() {
+  const accountSelects = document.querySelectorAll(".transactionAccount");
+  accountSelects.forEach((select) => {
+    select.innerHTML = ""; // Clear existing options
+
+    // Add a placeholder option
+    let placeholderOption = new Option("Select Account", "", true, true);
+    placeholderOption.disabled = true;
+    select.add(placeholderOption);
+
+    // Fetch accounts from the database
+    window.electronAPI.fetchAccounts().then((accounts) => {
+      accounts.forEach((account) => {
+        let option = new Option(account.description, account.account_id);
+        select.add(option);
+      });
+    });
+  });
+}
+
+// Function to submit a new transaction
+function submitAddTransaction() {
+  let transaction = {
+    transactionDate: document.getElementById("transactionDate").value,
+    description: document.getElementById("transactionDescription").value,
+    clientId: document.getElementById("transactionClient").value,
+    transactionLines: [],
+  };
+
+  const transactionLines = document.querySelectorAll(".transaction-line");
+  transactionLines.forEach((line) => {
+    let account = line.querySelector(".transactionAccount").value;
+    let type = line.querySelector(".transactionType").value;
+    let amount = parseFloat(line.querySelector(".transactionAmount").value);
+    amount = type === "Debit" ? -amount : amount; // Negate amount for debits
+    transaction.transactionLines.push({ account, amount });
+  });
+
+  // Check if the sum of amounts is zero
+  const totalAmount = transaction.transactionLines.reduce(
+    (total, line) => total + line.amount,
+    0,
+  );
+  if (totalAmount !== 0) {
+    document.getElementById("addTransactionMessage").innerText =
+      "Total debits and credits must be equal.";
+    document.getElementById("addTransactionMessage").style.color = "red";
+    return;
+  }
+
+  // Submit the transaction to the backend
+  window.electronAPI
+    .addTransaction(transaction)
+    .then((response) => {
+      document.getElementById("addTransactionMessage").innerText =
+        "Transaction was successfully added.";
+      document.getElementById("addTransactionMessage").style.color =
+        "darkgreen";
+    })
+    .catch((error) => {
+      document.getElementById("addTransactionMessage").innerText =
+        "There was an error adding the transaction.";
+      document.getElementById("addTransactionMessage").style.color = "red";
+    });
+}
+
+// Function to update the net amount
+function updateNetAmount() {
+  const transactionLines = document.querySelectorAll(".transaction-line");
+  let netAmount = 0;
+
+  transactionLines.forEach((line) => {
+    const type = line.querySelector(".transactionType").value;
+    const amount =
+      parseFloat(line.querySelector(".transactionAmount").value) || 0;
+    netAmount += type === "Debit" ? -amount : amount;
+  });
+
+  const netAmountElement = document.getElementById("netAmount");
+  netAmountElement.innerText = `Net: $${netAmount.toFixed(2)}`;
+
+  if (netAmount === 0) {
+    netAmountElement.style.color = "darkgreen";
+  } else {
+    netAmountElement.style.color = "black";
+  }
+}
+
+// Add event listener to update net amount when transaction amount or type changes
+document.addEventListener("change", (event) => {
+  if (
+    event.target.classList.contains("transactionAmount") ||
+    event.target.classList.contains("transactionType")
+  ) {
+    updateNetAmount();
+  }
+});
 
 function addAccount() {
   updateMainContent(addAccountFormHTML);

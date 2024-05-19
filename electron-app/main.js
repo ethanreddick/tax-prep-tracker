@@ -216,3 +216,55 @@ ipcMain.handle("remove-account", async (event, accountId) => {
     );
   });
 });
+
+ipcMain.handle("add-transaction", async (event, transaction) => {
+  return new Promise((resolve, reject) => {
+    connection.beginTransaction((err) => {
+      if (err) reject(err);
+
+      connection.query(
+        "INSERT INTO transactions (client_id, transaction_date, description) VALUES (?, ?, ?)",
+        [
+          transaction.clientId,
+          transaction.transactionDate,
+          transaction.description,
+        ],
+        (error, results) => {
+          if (error) {
+            return connection.rollback(() => {
+              reject(error);
+            });
+          }
+
+          const transactionId = results.insertId;
+          let transactionLines = transaction.transactionLines.map((line) => [
+            transactionId,
+            line.account,
+            line.amount,
+          ]);
+
+          connection.query(
+            "INSERT INTO transaction_lines (transaction_id, account_id, amount) VALUES ?",
+            [transactionLines],
+            (error, results) => {
+              if (error) {
+                return connection.rollback(() => {
+                  reject(error);
+                });
+              }
+
+              connection.commit((err) => {
+                if (err) {
+                  return connection.rollback(() => {
+                    reject(err);
+                  });
+                }
+                resolve(results);
+              });
+            },
+          );
+        },
+      );
+    });
+  });
+});

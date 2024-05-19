@@ -125,3 +125,70 @@ form button {
 #addAccountForm .form-group {
     margin-bottom: 20px; /* Match the spacing with the Update Clients page */
 }
+
+/* Styles for Add Transaction Form */
+#transactionLines {
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.transaction-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+    width: 100%;
+    max-width: 600px; /* Adjust the width if necessary */
+}
+
+.transaction-line select,
+.transaction-line input {
+    margin-right: 10px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    flex: 1;
+}
+
+.transaction-line .transactionAccount,
+.transaction-line .transactionType,
+.transaction-line .transactionAmount {
+    flex: 1;
+    min-width: 120px; /* Adjust the min-width if necessary */
+}
+
+.remove-line-btn {
+    background-color: #e0e0e0;
+    border: none;
+    border-radius: 5px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.remove-line-btn:hover {
+    background-color: #c0c0c0;
+}
+
+.submit-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px; /* Adjust this value as needed */
+    position: relative;
+}
+
+.submit-container button {
+    flex: 0 0 auto;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.submit-container p {
+    flex: 1;
+    text-align: right;
+    margin: 0; /* Remove default margin for better alignment */
+}
