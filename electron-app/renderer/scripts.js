@@ -686,6 +686,16 @@ function submitAddTransaction() {
   const description = document.getElementById("transactionDescription").value;
   const date = document.getElementById("transactionDate").value;
 
+  // Check if the date field is empty
+  if (!date) {
+    const messageElement = document.getElementById("addTransactionMessage");
+    if (messageElement) {
+      messageElement.innerText = "Please specify a date for this transaction.";
+      messageElement.style.color = "red";
+    }
+    return; // Exit the function early if date is not specified
+  }
+
   const transactionLines = Array.from(
     document.getElementsByClassName("transaction-line"),
   ).map((line) => {
@@ -694,6 +704,21 @@ function submitAddTransaction() {
     const amount = parseFloat(line.querySelector(".transactionAmount").value);
     return { account_id, type, amount };
   });
+
+  // Calculate the net amount
+  const netAmount = transactionLines.reduce((net, line) => {
+    return net + (line.type === "Debit" ? -line.amount : line.amount);
+  }, 0);
+
+  // Check if the net amount is 0
+  if (netAmount !== 0) {
+    const messageElement = document.getElementById("addTransactionMessage");
+    if (messageElement) {
+      messageElement.innerText = "Please ensure debits equal credits.";
+      messageElement.style.color = "red";
+    }
+    return; // Exit the function early if net amount is not 0
+  }
 
   const transaction = {
     client_id,
