@@ -219,16 +219,19 @@ ipcMain.handle("remove-account", async (event, accountId) => {
 
 ipcMain.handle("add-transaction", async (event, transaction) => {
   return new Promise((resolve, reject) => {
-    connection.beginTransaction((err) => {
-      if (err) reject(err);
+    const { client_id, description, date, lines } = transaction;
 
+    // Start a transaction
+    connection.beginTransaction((err) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      // Insert into transactions table
       connection.query(
         "INSERT INTO transactions (client_id, transaction_date, description) VALUES (?, ?, ?)",
-        [
-          transaction.clientId,
-          transaction.transactionDate,
-          transaction.description,
-        ],
+        [client_id, date, description],
         (error, results) => {
           if (error) {
             return connection.rollback(() => {
@@ -237,32 +240,53 @@ ipcMain.handle("add-transaction", async (event, transaction) => {
           }
 
           const transactionId = results.insertId;
-          let transactionLines = transaction.transactionLines.map((line) => [
-            transactionId,
-            line.account,
-            line.amount,
-          ]);
 
-          connection.query(
-            "INSERT INTO transaction_lines (transaction_id, account_id, amount) VALUES ?",
-            [transactionLines],
-            (error, results) => {
-              if (error) {
-                return connection.rollback(() => {
-                  reject(error);
-                });
-              }
+          // Prepare transaction lines queries
+          const transactionLineQueries = lines.map((line) => {
+            const { account_id, type, amount } = line;
+            const signedAmount = type === "Debit" ? -amount : amount;
+            return new Promise((resolve, reject) => {
+              connection.query(
+                "INSERT INTO transaction_lines (transaction_id, account_id, amount) VALUES (?, ?, ?)",
+                [transactionId, account_id, signedAmount],
+                (error, results) => {
+                  if (error) {
+                    return reject(error);
+                  }
 
+                  // Update account balance
+                  connection.query(
+                    "UPDATE accounts SET account_balance = account_balance + ? WHERE account_id = ?",
+                    [signedAmount, account_id],
+                    (error, results) => {
+                      if (error) {
+                        return reject(error);
+                      }
+                      resolve();
+                    },
+                  );
+                },
+              );
+            });
+          });
+
+          // Execute all transaction line queries
+          Promise.all(transactionLineQueries)
+            .then(() => {
               connection.commit((err) => {
                 if (err) {
                   return connection.rollback(() => {
                     reject(err);
                   });
                 }
-                resolve(results);
+                resolve();
               });
-            },
-          );
+            })
+            .catch((error) => {
+              connection.rollback(() => {
+                reject(error);
+              });
+            });
         },
       );
     });

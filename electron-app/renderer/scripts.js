@@ -648,47 +648,43 @@ function loadAccountsForTransactionLines() {
 
 // Function to submit a new transaction
 function submitAddTransaction() {
-  let transaction = {
-    transactionDate: document.getElementById("transactionDate").value,
-    description: document.getElementById("transactionDescription").value,
-    clientId: document.getElementById("transactionClient").value,
-    transactionLines: [],
-  };
+  const client_id = document.getElementById("transactionClient").value;
+  const description = document.getElementById("transactionDescription").value;
+  const date = document.getElementById("transactionDate").value;
 
-  const transactionLines = document.querySelectorAll(".transaction-line");
-  transactionLines.forEach((line) => {
-    let account = line.querySelector(".transactionAccount").value;
-    let type = line.querySelector(".transactionType").value;
-    let amount = parseFloat(line.querySelector(".transactionAmount").value);
-    amount = type === "Debit" ? -amount : amount; // Negate amount for debits
-    transaction.transactionLines.push({ account, amount });
+  const transactionLines = Array.from(
+    document.getElementsByClassName("transaction-line"),
+  ).map((line) => {
+    const account_id = line.querySelector(".transactionAccount").value;
+    const type = line.querySelector(".transactionType").value;
+    const amount = parseFloat(line.querySelector(".transactionAmount").value);
+    return { account_id, type, amount };
   });
 
-  // Check if the sum of amounts is zero
-  const totalAmount = transaction.transactionLines.reduce(
-    (total, line) => total + line.amount,
-    0,
-  );
-  if (totalAmount !== 0) {
-    document.getElementById("addTransactionMessage").innerText =
-      "Total debits and credits must be equal.";
-    document.getElementById("addTransactionMessage").style.color = "red";
-    return;
-  }
+  const transaction = {
+    client_id,
+    description,
+    date,
+    lines: transactionLines,
+  };
 
-  // Submit the transaction to the backend
   window.electronAPI
     .addTransaction(transaction)
-    .then((response) => {
-      document.getElementById("addTransactionMessage").innerText =
-        "Transaction was successfully added.";
-      document.getElementById("addTransactionMessage").style.color =
-        "darkgreen";
+    .then(() => {
+      const messageElement = document.getElementById("addTransactionMessage");
+      if (messageElement) {
+        messageElement.innerText =
+          "Transaction was successfully added to the database.";
+      }
     })
     .catch((error) => {
-      document.getElementById("addTransactionMessage").innerText =
-        "There was an error adding the transaction.";
-      document.getElementById("addTransactionMessage").style.color = "red";
+      const messageElement = document.getElementById("addTransactionMessage");
+      if (messageElement) {
+        messageElement.innerText =
+          "There was an error adding the transaction to the database, click here for details.";
+        messageElement.style.color = "red";
+        messageElement.onclick = () => alert(error.message);
+      }
     });
 }
 
