@@ -583,21 +583,55 @@ function clearAccountFields() {
 
 // Function to add a new transaction line
 function addTransactionLine() {
-  const transactionLines = document.getElementById("transactionLines");
-  const newLine = document.createElement("div");
-  newLine.classList.add("transaction-line");
-  newLine.innerHTML = `
-        <select class="transactionAccount" name="transactionAccount">
-            <option value="" disabled selected>Select Account</option>
-        </select>
-        <select class="transactionType" name="transactionType">
-            <option value="Debit" selected>Debit</option>
-            <option value="Credit">Credit</option>
-        </select>
-        <input type="number" class="transactionAmount" name="transactionAmount" placeholder="Amount" step="0.01">
-    `;
-  transactionLines.appendChild(newLine);
-  loadAccountsForTransactionLines();
+  const transactionLinesDiv = document.getElementById("transactionLines");
+
+  // Preserve the current values of the account dropdowns and amounts
+  const currentLines = Array.from(
+    document.getElementsByClassName("transaction-line"),
+  ).map((line) => {
+    return {
+      account_id: line.querySelector(".transactionAccount").value,
+      type: line.querySelector(".transactionType").value,
+      amount: line.querySelector(".transactionAmount").value,
+    };
+  });
+
+  // Add new transaction line
+  const newLineHTML = `
+    <div class="transaction-line">
+      <select class="transactionAccount" name="transactionAccount">
+        <option value="" disabled selected>Select Account</option>
+        <!-- Populate options with accounts fetched from the database -->
+      </select>
+      <select class="transactionType" name="transactionType">
+        <option value="Debit" selected>Debit</option>
+        <option value="Credit">Credit</option>
+      </select>
+      <input type="number" class="transactionAmount" name="transactionAmount" placeholder="Amount" step="0.01">
+    </div>
+  `;
+  transactionLinesDiv.insertAdjacentHTML("beforeend", newLineHTML);
+
+  // Populate account dropdowns with options
+  window.electronAPI.fetchAccounts().then((accounts) => {
+    const accountDropdowns =
+      document.getElementsByClassName("transactionAccount");
+    Array.from(accountDropdowns).forEach((dropdown) => {
+      accounts.forEach((account) => {
+        let option = new Option(account.description, account.account_id);
+        dropdown.add(option);
+      });
+    });
+
+    // Restore the previously selected values
+    currentLines.forEach((line, index) => {
+      accountDropdowns[index].value = line.account_id;
+      document.getElementsByClassName("transactionType")[index].value =
+        line.type;
+      document.getElementsByClassName("transactionAmount")[index].value =
+        line.amount;
+    });
+  });
 }
 
 // Function to remove a transaction line
@@ -675,6 +709,7 @@ function submitAddTransaction() {
       if (messageElement) {
         messageElement.innerText =
           "Transaction was successfully added to the database.";
+        messageElement.style.color = "darkgreen"; // Reset message color to green
       }
     })
     .catch((error) => {
