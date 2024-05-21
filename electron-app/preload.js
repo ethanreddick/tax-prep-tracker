@@ -13,4 +13,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   removeAccount: (accountId) => ipcRenderer.invoke("remove-account", accountId),
   addTransaction: (transaction) =>
     ipcRenderer.invoke("add-transaction", transaction),
+  fetchTransactions: () => ipcRenderer.invoke("fetch-transactions"),
 });

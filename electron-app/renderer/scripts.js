@@ -207,6 +207,114 @@ const addTransactionFormHTML = `
     </form>
 `;
 
+// Manage Transactions Page
+const manageTransactionsHTML = `
+    <div class="manage-transactions">
+        <h2>Manage Transactions</h2>
+        <div class="search-bar">
+            <span class="search-icon">&#128269;</span> <!-- Unicode for spyglass icon -->
+            <input type="text" id="searchTransactions" placeholder="Search Transactions">
+        </div>
+        <div class="transaction-list">
+            <div class="transaction-header">
+                <span id="transactionDateHeader" class="sortable">Date</span>
+                <span id="transactionDescriptionHeader">Description</span>
+            </div>
+            <div id="transactionItems">
+                <!-- Transactions will be loaded here -->
+            </div>
+        </div>
+        <div class="pagination">
+            <button id="prevPage" onclick="prevPage()">&#8249;</button>
+            <span id="pageInfo">Page 1 of 1</span>
+            <button id="nextPage" onclick="nextPage()">&#8250;</button>
+        </div>
+    </div>
+`;
+
+// Event listener to load Manage Transactions page
+function manageTransactions() {
+  updateMainContent(manageTransactionsHTML);
+  loadTransactions();
+  document
+    .getElementById("transactionDateHeader")
+    .addEventListener("click", sortTransactionsByDate);
+}
+
+let transactions = [];
+let currentPage = 1;
+const itemsPerPage = 10;
+
+function loadTransactions() {
+  window.electronAPI.fetchTransactions().then((data) => {
+    transactions = data;
+    displayTransactions();
+  });
+}
+
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  const options = {
+    weekday: "short",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  };
+  return date.toLocaleDateString("en-US", options);
+}
+
+function displayTransactions() {
+  const transactionItems = document.getElementById("transactionItems");
+  transactionItems.innerHTML = ""; // Clear existing transactions
+
+  const start = (currentPage - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  const paginatedTransactions = transactions.slice(start, end);
+
+  paginatedTransactions.forEach((transaction) => {
+    const transactionItem = document.createElement("div");
+    transactionItem.classList.add("transaction-item");
+    transactionItem.innerHTML = `
+      <span>${formatDate(transaction.transaction_date)}</span>
+      <span>${transaction.description}</span>
+    `;
+    transactionItems.appendChild(transactionItem);
+  });
+
+  updatePagination();
+}
+
+function updatePagination() {
+  const pageInfo = document.getElementById("pageInfo");
+  const totalPages = Math.ceil(transactions.length / itemsPerPage);
+  pageInfo.innerText = `Page ${currentPage} of ${totalPages}`;
+
+  document.getElementById("prevPage").disabled = currentPage === 1;
+  document.getElementById("nextPage").disabled = currentPage === totalPages;
+}
+
+function prevPage() {
+  if (currentPage > 1) {
+    currentPage--;
+    displayTransactions();
+  }
+}
+
+function nextPage() {
+  const totalPages = Math.ceil(transactions.length / itemsPerPage);
+  if (currentPage < totalPages) {
+    currentPage++;
+    displayTransactions();
+  }
+}
+
+function sortTransactionsByDate() {
+  transactions.sort(
+    (a, b) => new Date(a.transaction_date) - new Date(b.transaction_date),
+  );
+  displayTransactions();
+}
+
 // Add Event Listeners to the buttons
 function addEventListeners() {
   document
@@ -263,16 +371,10 @@ function addEventListeners() {
       loadClientsForTransaction();
       loadAccountsForTransactionLines();
     });
-
   document
     .getElementById("transactions-box")
     .querySelector("button:nth-child(3)")
-    .addEventListener("click", updateTransaction);
-  document
-    .getElementById("transactions-box")
-    .querySelector("button:nth-child(4)")
-    .addEventListener("click", removeTransaction);
-
+    .addEventListener("click", manageTransactions);
   document
     .getElementById("reports-box")
     .querySelector("button:nth-child(2)")
@@ -640,6 +742,53 @@ function removeTransactionLine(button) {
   updateNetAmount();
 }
 
+// Function to handle viewing transaction history
+function viewTransactionHistory() {
+  updateMainContent(viewTransactionHistoryHTML);
+  loadTransactionHistory();
+}
+
+// Add the transaction history HTML form
+const viewTransactionHistoryHTML = `
+  <div id="transactionHistory">
+    <h2>Transaction History</h2>
+    <table id="transactionHistoryTable">
+      <thead>
+        <tr>
+          <th>Transaction ID</th>
+          <th>Client</th>
+          <th>Date</th>
+          <th>Description</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Rows will be loaded here -->
+      </tbody>
+    </table>
+  </div>
+`;
+
+// Function to load transaction history
+function loadTransactionHistory() {
+  window.electronAPI.fetchTransactionHistory().then((transactions) => {
+    const tableBody = document
+      .getElementById("transactionHistoryTable")
+      .querySelector("tbody");
+    tableBody.innerHTML = ""; // Clear existing rows
+
+    transactions.forEach((transaction) => {
+      const row = tableBody.insertRow();
+
+      row.insertCell(0).innerText = transaction.transaction_id;
+      row.insertCell(1).innerText = transaction.client_name; // Ensure this field is included in the fetched data
+      row.insertCell(2).innerText = transaction.transaction_date;
+      row.insertCell(3).innerText = transaction.description;
+      row.insertCell(4).innerText = transaction.amount;
+    });
+  });
+}
+
 // Function to load clients into the transaction client dropdown
 function loadClientsForTransaction() {
   const clientSelect = document.getElementById("transactionClient");
@@ -800,11 +949,6 @@ function addTransaction() {
 function updateTransaction() {
   document.getElementById("mainContent").innerHTML =
     "<h1>Update Transaction</h1>";
-}
-
-function removeTransaction() {
-  document.getElementById("mainContent").innerHTML =
-    "<h1>Remove Transaction</h1>";
 }
 
 function showBalanceSheet() {

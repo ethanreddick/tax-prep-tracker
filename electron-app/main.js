@@ -33,7 +33,7 @@ function createWindow() {
   // Create the browser window.
   let win = new BrowserWindow({
     width: 1200,
-    height: 900,
+    height: 1000,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -290,5 +290,46 @@ ipcMain.handle("add-transaction", async (event, transaction) => {
         },
       );
     });
+  });
+});
+
+ipcMain.handle("fetch-transaction-history", async () => {
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT
+        t.transaction_id,
+        c.name AS client_name,
+        t.transaction_date,
+        t.description,
+        SUM(CASE WHEN tl.amount > 0 THEN tl.amount ELSE 0 END) AS amount
+      FROM transactions t
+      JOIN clients c ON t.client_id = c.client_id
+      JOIN transaction_lines tl ON t.transaction_id = tl.transaction_id
+      GROUP BY t.transaction_id, c.name, t.transaction_date, t.description
+      ORDER BY t.transaction_date DESC;
+    `;
+
+    connection.query(query, (error, results) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(results);
+      }
+    });
+  });
+});
+
+ipcMain.handle("fetch-transactions", async () => {
+  return new Promise((resolve, reject) => {
+    connection.query(
+      "SELECT * FROM transactions ORDER BY transaction_date DESC",
+      (error, results) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(results);
+        }
+      },
+    );
   });
 });
