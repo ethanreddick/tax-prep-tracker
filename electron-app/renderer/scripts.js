@@ -308,10 +308,15 @@ function nextPage() {
   }
 }
 
+let sortAscending = true; // Variable to track sorting order
+
 function sortTransactionsByDate() {
-  transactions.sort(
-    (a, b) => new Date(a.transaction_date) - new Date(b.transaction_date),
-  );
+  transactions.sort((a, b) => {
+    const dateA = new Date(a.transaction_date);
+    const dateB = new Date(b.transaction_date);
+    return sortAscending ? dateA - dateB : dateB - dateA;
+  });
+  sortAscending = !sortAscending; // Toggle the sorting order
   displayTransactions();
 }
 
