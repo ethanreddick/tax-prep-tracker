@@ -239,6 +239,20 @@ function manageTransactions() {
   document
     .getElementById("transactionDateHeader")
     .addEventListener("click", sortTransactionsByDate);
+
+  // Add event listener for real-time search
+  document
+    .getElementById("searchTransactions")
+    .addEventListener("input", (event) => {
+      filterTransactions(event.target.value);
+    });
+}
+
+function filterTransactions(query) {
+  const filteredTransactions = transactions.filter((transaction) =>
+    transaction.description.toLowerCase().includes(query.toLowerCase()),
+  );
+  displayTransactions(filteredTransactions);
 }
 
 let transactions = [];
@@ -263,13 +277,13 @@ function formatDate(dateString) {
   return date.toLocaleDateString("en-US", options);
 }
 
-function displayTransactions() {
+function displayTransactions(transactionsToRender = transactions) {
   const transactionItems = document.getElementById("transactionItems");
   transactionItems.innerHTML = ""; // Clear existing transactions
 
   const start = (currentPage - 1) * itemsPerPage;
   const end = start + itemsPerPage;
-  const paginatedTransactions = transactions.slice(start, end);
+  const paginatedTransactions = transactionsToRender.slice(start, end);
 
   paginatedTransactions.forEach((transaction) => {
     const transactionItem = document.createElement("div");
@@ -281,12 +295,12 @@ function displayTransactions() {
     transactionItems.appendChild(transactionItem);
   });
 
-  updatePagination();
+  updatePagination(transactionsToRender);
 }
 
-function updatePagination() {
+function updatePagination(transactionsToRender = transactions) {
   const pageInfo = document.getElementById("pageInfo");
-  const totalPages = Math.ceil(transactions.length / itemsPerPage);
+  const totalPages = Math.ceil(transactionsToRender.length / itemsPerPage);
   pageInfo.innerText = `Page ${currentPage} of ${totalPages}`;
 
   document.getElementById("prevPage").disabled = currentPage === 1;
