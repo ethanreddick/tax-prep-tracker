@@ -37,20 +37,24 @@ body {
     background-color: #c0c0c0;
 }
 
-#mainContent form {
-    margin: 20px auto;
+.task-area {
+    background-color: #f9f9f9; /* Consistent light background */
     padding: 20px;
-    background: #f9f9f9;
-    border: 1px solid #ccc;
-    width: 60%;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    text-align: center;
     border-radius: 10px;
+    margin: 20px auto; /* Center the task area */
+    width: 60%; /* Consistent width for all task areas */
+    border: 1px solid #ccc; /* Consistent border */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.task-title {
+    text-align: center;
 }
 
 .form-group {
     display: flex;
     justify-content: space-between;
+    align-items: center; /* Align items vertically */
     margin: 10px 0;
     width: 100%;
 }
@@ -69,6 +73,8 @@ body {
     border: 1px solid #ccc;
     border-radius: 5px; /* Add rounded edges */
     margin-left: -10px; /* Adjust the value to move it to the left */
+    height: 36px; /* Match height of the button */
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
 }
 
 #clientSelect,
@@ -300,18 +306,25 @@ form button {
     margin: 0 10px;
 }
 
-/* Add styles for Generate Report page */
-.task-area {
-    background-color: #f0f0f0;
-    padding: 20px;
-    border-radius: 5px;
-    margin: 20px;
-}
-
-.task-title {
-    text-align: center;
-}
-
 .browse-btn {
     margin-left: 10px;
+    padding: 8px 16px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    cursor: pointer;
+    background-color: #e0e0e0;
+    transition:
+        background-color 0.3s,
+        border-color 0.3s;
+    display: flex;
+    align-items: center; /* Center items vertically */
+    justify-content: center; /* Center text horizontally */
+    height: 100%;
+    transform: translateY(-27%);
+}
+
+.browse-btn:hover {
+    background-color: #c0c0c0;
+    border-color: #999;
 }

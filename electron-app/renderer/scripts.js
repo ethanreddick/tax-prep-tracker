@@ -1,6 +1,10 @@
 // Function to update the main content area
 function updateMainContent(content) {
-  document.getElementById("mainContent").innerHTML = content;
+  document.getElementById("mainContent").innerHTML = `
+    <div class="task-area">
+      ${content}
+    </div>
+  `;
 }
 
 // Add Client Form
@@ -209,7 +213,7 @@ const addTransactionFormHTML = `
 
 // Manage Transactions Page
 const manageTransactionsHTML = `
-    <div class="manage-transactions">
+    <form id="manageTransactionForm">
         <h2>Manage Transactions</h2>
         <div class="search-bar">
             <span class="search-icon">&#128269;</span> <!-- Unicode for spyglass icon -->
@@ -229,12 +233,12 @@ const manageTransactionsHTML = `
             <span id="pageInfo">Page 1 of 1</span>
             <button id="nextPage" onclick="nextPage()">&#8250;</button>
         </div>
-    </div>
+    </form>
 `;
 
 // Add the "Generate Report" page content
 const generateReportHTML = `
-  <div class="task-area">
+  <form id="generateReportForm">
     <h2 class="task-title">Generate Report</h2>
     <div class="form-group">
       <label for="reportType">Report Type:</label>
@@ -250,7 +254,7 @@ const generateReportHTML = `
       <button type="button" class="browse-btn" onclick="openDirectoryDialog()">Browse</button>
     </div>
     <button type="button" class="action-btn" onclick="generateReport()">Generate</button>
-  </div>
+  </form>
 `;
 
 // Event listener to load Manage Transactions page
