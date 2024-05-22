@@ -328,3 +328,7 @@ form button {
     background-color: #c0c0c0;
     border-color: #999;
 }
+
+#generateReportMessage {
+    text-align: center;
+}

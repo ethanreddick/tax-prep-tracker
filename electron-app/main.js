@@ -339,5 +339,9 @@ ipcMain.handle("open-directory-dialog", async () => {
   const result = await dialog.showOpenDialog({
     properties: ["openDirectory"],
   });
-  return result.filePaths[0];
+  if (result.canceled) {
+    return "";
+  } else {
+    return result.filePaths[0];
+  }
 });
