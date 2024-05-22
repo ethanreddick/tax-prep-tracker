@@ -1,9 +1,9 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("electronAPI", {
-  addClient: (client) => ipcRenderer.invoke("add-client", client),
   fetchClients: () => ipcRenderer.invoke("fetch-clients"),
   fetchClient: (clientId) => ipcRenderer.invoke("fetch-client", clientId),
+  addClient: (client) => ipcRenderer.invoke("add-client", client),
   updateClient: (client) => ipcRenderer.invoke("update-client", client),
   removeClient: (clientId) => ipcRenderer.invoke("remove-client", clientId),
   addAccount: (account) => ipcRenderer.invoke("add-account", account),
@@ -13,6 +13,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   removeAccount: (accountId) => ipcRenderer.invoke("remove-account", accountId),
   addTransaction: (transaction) =>
     ipcRenderer.invoke("add-transaction", transaction),
+  fetchTransactionHistory: () =>
+    ipcRenderer.invoke("fetch-transaction-history"),
   fetchTransactions: () => ipcRenderer.invoke("fetch-transactions"),
   openDirectoryDialog: () => ipcRenderer.invoke("open-directory-dialog"),
+  generatePdfReport: (reportPath, content) =>
+    ipcRenderer.invoke("generate-pdf-report", { reportPath, content }), // Add this line
 });

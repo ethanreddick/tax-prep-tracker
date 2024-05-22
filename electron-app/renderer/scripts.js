@@ -1013,87 +1013,93 @@ function generatePDFReport(filePath, content) {
 // Function to generate report
 function generateReport() {
   const reportType = document.getElementById("reportType").value;
-  const reportPath = document.getElementById("reportPath").value;
+  let reportPath = document.getElementById("reportPath").value;
 
-  if (!reportPath) {
-    const messageElement = document.getElementById("generateReportMessage");
-    if (messageElement) {
-      messageElement.innerText = "Please specify a save path for the report.";
-      messageElement.style.color = "red";
-      messageElement.onclick = null;
+  // Function to format the current date as MM-DD-YYYY
+  function formatDate(date) {
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
+    const year = date.getFullYear();
+    return `${month}-${day}-${year}`;
+  }
+
+  // Get the current date
+  const currentDate = formatDate(new Date());
+
+  // Default file names based on report type
+  const defaultFileNames = {
+    balanceSheet: `BalanceSheet${currentDate}.pdf`,
+    incomeStatement: `IncomeStatement${currentDate}.pdf`,
+    trialBalance: `TrialBalance${currentDate}.pdf`,
+  };
+
+  // Check if the provided path is a directory
+  if (!reportPath.toLowerCase().endsWith(".pdf")) {
+    if (!reportPath.endsWith("/")) {
+      reportPath += "/";
     }
-    return;
+    reportPath += defaultFileNames[reportType]; // Append default file name
   }
 
   if (reportType === "balanceSheet") {
-    fetchAccountData()
-      .then((data) => {
-        const { assetAccounts, liabilityAccounts, equityAccounts } = data;
+    fetchAccountData().then((data) => {
+      const { assetAccounts, liabilityAccounts, equityAccounts } = data;
 
-        // Calculate totals
-        const totalAssets = assetAccounts.reduce(
-          (sum, account) => sum + account.accountBalance,
-          0,
-        );
-        const totalLiabilities = liabilityAccounts.reduce(
-          (sum, account) => sum + account.accountBalance,
-          0,
-        );
-        const totalEquity = equityAccounts.reduce(
-          (sum, account) => sum + account.accountBalance,
-          0,
-        );
+      // Calculate totals
+      const totalAssets = assetAccounts.reduce(
+        (sum, account) => sum + account.accountBalance,
+        0,
+      );
+      const totalLiabilities = liabilityAccounts.reduce(
+        (sum, account) => sum + account.accountBalance,
+        0,
+      );
+      const totalEquity = equityAccounts.reduce(
+        (sum, account) => sum + account.accountBalance,
+        0,
+      );
 
-        // Generate the balance sheet content
-        const balanceSheetContent = `
-          Balance Sheet
-          ---------------------------
-          Assets:
-          ${assetAccounts
-            .map(
-              (account) =>
-                `${account.description}: $${account.accountBalance.toFixed(2)}`,
-            )
-            .join("\n")}
-          Total Assets: $${totalAssets.toFixed(2)}
+      // Generate the balance sheet content
+      const balanceSheetContent = `
+        Balance Sheet
+        ---------------------------
+        Assets:
+        ${assetAccounts.map((account) => `${account.description}: $${account.accountBalance.toFixed(2)}`).join("\n")}
+        Total Assets: $${totalAssets.toFixed(2)}
 
-          Liabilities:
-          ${liabilityAccounts
-            .map(
-              (account) =>
-                `${account.description}: $${account.accountBalance.toFixed(2)}`,
-            )
-            .join("\n")}
-          Total Liabilities: $${totalLiabilities.toFixed(2)}
+        Liabilities:
+        ${liabilityAccounts.map((account) => `${account.description}: $${account.accountBalance.toFixed(2)}`).join("\n")}
+        Total Liabilities: $${totalLiabilities.toFixed(2)}
 
-          Equity:
-          ${equityAccounts
-            .map(
-              (account) =>
-                `${account.description}: $${account.accountBalance.toFixed(2)}`,
-            )
-            .join("\n")}
-          Total Equity: $${totalEquity.toFixed(2)}
-        `;
+        Equity:
+        ${equityAccounts.map((account) => `${account.description}: $${account.accountBalance.toFixed(2)}`).join("\n")}
+        Total Equity: $${totalEquity.toFixed(2)}
+      `;
 
-        // Save the balance sheet content to the specified path
-        generatePDFReport(reportPath, balanceSheetContent);
-        const messageElement = document.getElementById("generateReportMessage");
-        if (messageElement) {
-          messageElement.innerText = "Report generated successfully.";
-          messageElement.style.color = "darkgreen";
-          messageElement.onclick = null;
-        }
-      })
-      .catch((error) => {
-        const messageElement = document.getElementById("generateReportMessage");
-        if (messageElement) {
-          messageElement.innerText =
-            "Error generating report, click here for details.";
-          messageElement.style.color = "red";
-          messageElement.onclick = () => alert(error.message);
-        }
-      });
+      // Save the balance sheet content to the specified path
+      window.electronAPI
+        .generatePdfReport(reportPath, balanceSheetContent)
+        .then((message) => {
+          const messageElement = document.getElementById(
+            "generateReportMessage",
+          );
+          if (messageElement) {
+            messageElement.innerText = message;
+            messageElement.style.color = "darkgreen";
+          }
+        })
+        .catch((error) => {
+          const messageElement = document.getElementById(
+            "generateReportMessage",
+          );
+          if (messageElement) {
+            messageElement.innerText =
+              "Error generating report. Click here for details.";
+            messageElement.style.color = "red";
+            messageElement.onclick = () => alert(error.message);
+          }
+        });
+    });
   }
 }
 

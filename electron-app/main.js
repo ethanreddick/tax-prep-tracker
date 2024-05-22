@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
 const mysql = require("mysql");
 const fs = require("fs");
+const PDFDocument = require("pdfkit");
 const crypto = require("crypto");
 
 // Read and parse the configuration file
@@ -345,3 +346,26 @@ ipcMain.handle("open-directory-dialog", async () => {
     return result.filePaths[0];
   }
 });
+
+ipcMain.handle(
+  "generate-pdf-report",
+  async (event, { reportPath, content }) => {
+    try {
+      const doc = new PDFDocument();
+      doc.pipe(fs.createWriteStream(reportPath));
+
+      doc.fontSize(20).text("Balance Sheet", { align: "center" });
+      doc.moveDown();
+
+      content.split("\n").forEach((line) => {
+        doc.fontSize(12).text(line);
+      });
+
+      doc.end();
+
+      return "Report generated successfully.";
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  },
+);
