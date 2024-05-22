@@ -299,3 +299,19 @@ form button {
 .pagination #pageInfo {
     margin: 0 10px;
 }
+
+/* Add styles for Generate Report page */
+.task-area {
+    background-color: #f0f0f0;
+    padding: 20px;
+    border-radius: 5px;
+    margin: 20px;
+}
+
+.task-title {
+    text-align: center;
+}
+
+.browse-btn {
+    margin-left: 10px;
+}

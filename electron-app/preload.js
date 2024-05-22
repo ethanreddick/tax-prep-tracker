@@ -14,4 +14,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   addTransaction: (transaction) =>
     ipcRenderer.invoke("add-transaction", transaction),
   fetchTransactions: () => ipcRenderer.invoke("fetch-transactions"),
+  openDirectoryDialog: () => ipcRenderer.invoke("open-directory-dialog"),
 });

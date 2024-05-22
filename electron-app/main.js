@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
 const mysql = require("mysql");
 const fs = require("fs");
@@ -332,4 +332,12 @@ ipcMain.handle("fetch-transactions", async () => {
       },
     );
   });
+});
+
+// Add a handler for the directory dialog
+ipcMain.handle("open-directory-dialog", async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ["openDirectory"],
+  });
+  return result.filePaths[0];
 });

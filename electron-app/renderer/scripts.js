@@ -232,6 +232,27 @@ const manageTransactionsHTML = `
     </div>
 `;
 
+// Add the "Generate Report" page content
+const generateReportHTML = `
+  <div class="task-area">
+    <h2 class="task-title">Generate Report</h2>
+    <div class="form-group">
+      <label for="reportType">Report Type:</label>
+      <select id="reportType">
+        <option value="balanceSheet">Balance Sheet</option>
+        <option value="incomeStatement">Income Statement</option>
+        <option value="trialBalance">Trial Balance</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="reportPath">Save to Path:</label>
+      <input type="text" id="reportPath" placeholder="Enter file path">
+      <button type="button" class="browse-btn" onclick="openDirectoryDialog()">Browse</button>
+    </div>
+    <button type="button" class="action-btn" onclick="generateReport()">Generate</button>
+  </div>
+`;
+
 // Event listener to load Manage Transactions page
 function manageTransactions() {
   updateMainContent(manageTransactionsHTML);
@@ -947,6 +968,88 @@ document.addEventListener("change", (event) => {
     updateNetAmount();
   }
 });
+
+function showGenerateReport() {
+  updateMainContent(generateReportHTML);
+}
+
+function fetchAccountData() {
+  return window.electronAPI.fetchAccounts().then((accounts) => {
+    const assetAccounts = accounts.filter(
+      (account) => account.accountClass === "Asset",
+    );
+    const liabilityAccounts = accounts.filter(
+      (account) => account.accountClass === "Liability",
+    );
+    const equityAccounts = accounts.filter(
+      (account) => account.accountClass === "Equity",
+    );
+    return { assetAccounts, liabilityAccounts, equityAccounts };
+  });
+}
+
+function generateReport() {
+  const reportType = document.getElementById("reportType").value;
+  const reportPath = document.getElementById("reportPath").value;
+
+  if (reportType === "balanceSheet") {
+    fetchAccountData().then((data) => {
+      const { assetAccounts, liabilityAccounts, equityAccounts } = data;
+
+      // Calculate totals
+      const totalAssets = assetAccounts.reduce(
+        (sum, account) => sum + account.accountBalance,
+        0,
+      );
+      const totalLiabilities = liabilityAccounts.reduce(
+        (sum, account) => sum + account.accountBalance,
+        0,
+      );
+      const totalEquity = equityAccounts.reduce(
+        (sum, account) => sum + account.accountBalance,
+        0,
+      );
+
+      // Generate the balance sheet content
+      const balanceSheetContent = `
+        Balance Sheet
+        ---------------------------
+        Assets:
+        ${assetAccounts.map((account) => `${account.description}: $${account.accountBalance.toFixed(2)}`).join("\n")}
+        Total Assets: $${totalAssets.toFixed(2)}
+
+        Liabilities:
+        ${liabilityAccounts.map((account) => `${account.description}: $${account.accountBalance.toFixed(2)}`).join("\n")}
+        Total Liabilities: $${totalLiabilities.toFixed(2)}
+
+        Equity:
+        ${equityAccounts.map((account) => `${account.description}: $${account.accountBalance.toFixed(2)}`).join("\n")}
+        Total Equity: $${totalEquity.toFixed(2)}
+      `;
+
+      // Save the balance sheet content to the specified path
+      saveReportToFile(reportPath, balanceSheetContent);
+    });
+  }
+}
+
+// Function to open directory dialog and select a path
+function openDirectoryDialog() {
+  window.electronAPI.openDirectoryDialog().then((selectedPath) => {
+    document.getElementById("reportPath").value = selectedPath;
+  });
+}
+
+function saveReportToFile(filePath, content) {
+  const fs = require("fs");
+  fs.writeFile(filePath, content, (err) => {
+    if (err) {
+      console.error("Error saving report:", err);
+    } else {
+      console.log("Report saved successfully.");
+    }
+  });
+}
 
 function addAccount() {
   updateMainContent(addAccountFormHTML);
