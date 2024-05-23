@@ -47,7 +47,15 @@ body {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.task-title {
+.task-title,
+#addClientForm h2,
+#updateClientForm h2,
+#removeClientForm h2,
+#addAccountForm h2,
+#updateAccountForm h2,
+#removeAccountForm h2,
+#addTransactionForm h2,
+#manageTransactionForm h2 {
     text-align: center;
 }
 
@@ -332,6 +340,7 @@ form button {
 #generateReportMessage {
     text-align: center;
 }
+
 #addAccountMessage {
     text-align: center;
 }
