@@ -152,7 +152,7 @@ ipcMain.handle("add-account", async (event, account) => {
 ipcMain.handle("fetch-accounts", async () => {
   return new Promise((resolve, reject) => {
     connection.query(
-      "SELECT account_id, description FROM accounts",
+      "SELECT account_id, description, account_class, account_balance FROM accounts",
       (error, results) => {
         if (error) {
           reject(error);
@@ -351,20 +351,138 @@ ipcMain.handle(
   "generate-pdf-report",
   async (event, { reportPath, content }) => {
     try {
+      if (!content) {
+        throw new Error("Content is undefined or empty.");
+      }
+
+      console.log("Generating PDF report...");
+      console.log("Report Path: ", reportPath);
+      console.log("Content: ", content);
+
+      const {
+        assetAccounts,
+        liabilityAccounts,
+        equityAccounts,
+        totalAssets,
+        totalLiabilities,
+        totalEquity,
+      } = content;
+
       const doc = new PDFDocument();
       doc.pipe(fs.createWriteStream(reportPath));
 
+      // Title and date
       doc.fontSize(20).text("Balance Sheet", { align: "center" });
-      doc.moveDown();
 
-      content.split("\n").forEach((line) => {
-        doc.fontSize(12).text(line);
+      // Add the current date in full form below the title
+      const currentDate = new Date().toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+      doc.fontSize(14).text(`Date: ${currentDate}`, { align: "center" });
+      doc.moveDown(2);
+
+      const columnWidth = (doc.page.width - 80) / 3;
+      const startY = doc.y;
+
+      // Draw vertical separators
+      const separatorX1 = 40 + columnWidth;
+      const separatorX2 = 40 + columnWidth * 2;
+
+      doc
+        .moveTo(separatorX1, startY)
+        .lineTo(separatorX1, startY + 500)
+        .stroke();
+      doc
+        .moveTo(separatorX2, startY)
+        .lineTo(separatorX2, startY + 500)
+        .stroke();
+
+      // Assets
+      doc
+        .fontSize(16)
+        .text("Assets", 40, startY, { width: columnWidth, align: "center" });
+      doc
+        .fontSize(12)
+        .text(`Total Assets: $${totalAssets.toFixed(2)}`, 40, startY + 20, {
+          width: columnWidth,
+          align: "center",
+        });
+      let currentY = startY + 40;
+      assetAccounts.forEach((account) => {
+        doc.text(account.description, 50, currentY, {
+          width: columnWidth - 20,
+        });
+        doc.text(
+          `$${account.account_balance.toFixed(2)}`,
+          40 + columnWidth - 190,
+          currentY,
+          { width: columnWidth, align: "right" },
+        );
+        currentY += 20;
+      });
+
+      // Liabilities
+      doc.fontSize(16).text("Liabilities", 40 + columnWidth, startY, {
+        width: columnWidth,
+        align: "center",
+      });
+      doc
+        .fontSize(12)
+        .text(
+          `Total Liabilities: $${totalLiabilities.toFixed(2)}`,
+          40 + columnWidth,
+          startY + 20,
+          { width: columnWidth, align: "center" },
+        );
+      currentY = startY + 40;
+      liabilityAccounts.forEach((account) => {
+        doc.text(account.description, 50 + columnWidth, currentY, {
+          width: columnWidth - 20,
+        });
+        doc.text(
+          `$${account.account_balance.toFixed(2)}`,
+          40 + columnWidth * 2 - 190,
+          currentY,
+          { width: columnWidth, align: "right" },
+        );
+        currentY += 20;
+      });
+
+      // Equity
+      doc.fontSize(16).text("Equity", 40 + columnWidth * 2, startY, {
+        width: columnWidth,
+        align: "center",
+      });
+      doc
+        .fontSize(12)
+        .text(
+          `Total Equity: $${totalEquity.toFixed(2)}`,
+          40 + columnWidth * 2,
+          startY + 20,
+          { width: columnWidth, align: "center" },
+        );
+      currentY = startY + 40;
+      equityAccounts.forEach((account) => {
+        doc.text(account.description, 50 + columnWidth * 2, currentY, {
+          width: columnWidth - 20,
+        });
+        doc.text(
+          `$${account.account_balance.toFixed(2)}`,
+          40 + columnWidth * 3 - 190,
+          currentY,
+          { width: columnWidth, align: "right" },
+        );
+        currentY += 20;
       });
 
       doc.end();
 
       return "Report generated successfully.";
     } catch (error) {
+      console.error("Error generating PDF report: ", error);
       throw new Error(error.message);
     }
   },

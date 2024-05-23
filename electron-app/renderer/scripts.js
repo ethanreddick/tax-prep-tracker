@@ -292,15 +292,18 @@ function loadTransactions() {
   });
 }
 
-function formatDate(dateString) {
-  const date = new Date(dateString);
-  const options = {
-    weekday: "short",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
+// Utility function to format the date
+function formatDate(date, options = {}) {
+  const defaultOptions = {
+    fullDate: false,
   };
-  return date.toLocaleDateString("en-US", options);
+
+  const { fullDate } = { ...defaultOptions, ...options };
+  const optionsConfig = fullDate
+    ? { weekday: "long", year: "numeric", month: "long", day: "numeric" }
+    : { year: "numeric", month: "short", day: "numeric" };
+
+  return date.toLocaleDateString("en-US", optionsConfig);
 }
 
 function displayTransactions(transactionsToRender = transactions) {
@@ -978,17 +981,22 @@ function showGenerateReport() {
   updateMainContent(generateReportHTML);
 }
 
+// Function to fetch account data
 function fetchAccountData() {
   return window.electronAPI.fetchAccounts().then((accounts) => {
+    console.log("Fetched accounts: ", accounts); // Log fetched accounts
     const assetAccounts = accounts.filter(
-      (account) => account.accountClass === "Asset",
+      (account) => account.account_class === "Asset",
     );
     const liabilityAccounts = accounts.filter(
-      (account) => account.accountClass === "Liability",
+      (account) => account.account_class === "Liability",
     );
     const equityAccounts = accounts.filter(
-      (account) => account.accountClass === "Equity",
+      (account) => account.account_class === "Equity",
     );
+    console.log("Asset accounts: ", assetAccounts); // Log asset accounts
+    console.log("Liability accounts: ", liabilityAccounts); // Log liability accounts
+    console.log("Equity accounts: ", equityAccounts); // Log equity accounts
     return { assetAccounts, liabilityAccounts, equityAccounts };
   });
 }
@@ -1015,14 +1023,6 @@ function generateReport() {
   const reportType = document.getElementById("reportType").value;
   let reportPath = document.getElementById("reportPath").value;
 
-  // Function to format the current date as MM-DD-YYYY
-  function formatDate(date) {
-    const month = (date.getMonth() + 1).toString().padStart(2, "0");
-    const day = date.getDate().toString().padStart(2, "0");
-    const year = date.getFullYear();
-    return `${month}-${day}-${year}`;
-  }
-
   // Get the current date
   const currentDate = formatDate(new Date());
 
@@ -1043,42 +1043,35 @@ function generateReport() {
 
   if (reportType === "balanceSheet") {
     fetchAccountData().then((data) => {
+      console.log("Fetched data for report: ", data); // Log fetched data
       const { assetAccounts, liabilityAccounts, equityAccounts } = data;
 
       // Calculate totals
       const totalAssets = assetAccounts.reduce(
-        (sum, account) => sum + account.accountBalance,
+        (sum, account) => sum + account.account_balance,
         0,
       );
       const totalLiabilities = liabilityAccounts.reduce(
-        (sum, account) => sum + account.accountBalance,
+        (sum, account) => sum + account.account_balance,
         0,
       );
       const totalEquity = equityAccounts.reduce(
-        (sum, account) => sum + account.accountBalance,
+        (sum, account) => sum + account.account_balance,
         0,
       );
 
-      // Generate the balance sheet content
-      const balanceSheetContent = `
-        Balance Sheet
-        ---------------------------
-        Assets:
-        ${assetAccounts.map((account) => `${account.description}: $${account.accountBalance.toFixed(2)}`).join("\n")}
-        Total Assets: $${totalAssets.toFixed(2)}
-
-        Liabilities:
-        ${liabilityAccounts.map((account) => `${account.description}: $${account.accountBalance.toFixed(2)}`).join("\n")}
-        Total Liabilities: $${totalLiabilities.toFixed(2)}
-
-        Equity:
-        ${equityAccounts.map((account) => `${account.description}: $${account.accountBalance.toFixed(2)}`).join("\n")}
-        Total Equity: $${totalEquity.toFixed(2)}
-      `;
+      const reportData = {
+        assetAccounts,
+        liabilityAccounts,
+        equityAccounts,
+        totalAssets,
+        totalLiabilities,
+        totalEquity,
+      };
 
       // Save the balance sheet content to the specified path
       window.electronAPI
-        .generatePdfReport(reportPath, balanceSheetContent)
+        .generatePdfReport(reportPath, reportData)
         .then((message) => {
           const messageElement = document.getElementById(
             "generateReportMessage",
