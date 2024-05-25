@@ -344,3 +344,11 @@ form button {
 #addAccountMessage {
     text-align: center;
 }
+
+#addTransactionMessage {
+    text-align: center;
+}
+
+#removeAccountFormHTML p {
+    text-align: center;
+}

@@ -154,6 +154,7 @@ const updateAccountFormHTML = `
 const removeAccountFormHTML = `
   <form id="removeAccountForm">
     <h2>Remove Account</h2>
+    <p>This can only be done prior to transactions being made with this account.</p>
     <select id="removeAccountSelect">
       <option value="" disabled selected>Select Account</option>
     </select>
