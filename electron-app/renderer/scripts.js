@@ -64,6 +64,7 @@ const updateClientFormHTML = `
 const removeClientFormHTML = `
     <form id="removeClientForm">
         <h2>Remove Client</h2>
+        <p>This can only be done prior to transactions being made with this client.</p>
         <select id="removeClientSelect">
             <option value="" disabled selected>Select Client</option>
         </select>
@@ -934,6 +935,15 @@ function submitAddTransaction() {
           "Transaction was successfully added to the database.";
         messageElement.style.color = "darkgreen"; // Reset message color to green
       }
+
+      // Change button text to "Submit Another Transaction"
+      const submitButton = document.querySelector(
+        "#addTransactionForm .submit-container button.action-btn",
+      );
+      if (submitButton) {
+        submitButton.innerText = "Submit Another Transaction";
+        submitButton.onclick = loadAddTransactionPage; // Set onclick to loadAddTransactionPage
+      }
     })
     .catch((error) => {
       const messageElement = document.getElementById("addTransactionMessage");
@@ -944,6 +954,14 @@ function submitAddTransaction() {
         messageElement.onclick = () => alert(error.message);
       }
     });
+}
+
+// Function to load the "Add Transaction" page
+function loadAddTransactionPage() {
+  updateMainContent(addTransactionFormHTML);
+  loadClientsForTransaction();
+  loadAccountsForTransactionLines();
+  updateNetAmount(); // Ensure the net amount is updated correctly
 }
 
 // Function to update the net amount
