@@ -1,49 +1,78 @@
-# PowerShell script that verifies presence of dependencies and sets up the database
+# PowerShell script to verify presence of dependencies and set up the database
 
-function Check-And-Install-Node {
+function Check-AndInstallNode {
     Write-Host "Checking for Node.js..."
-    $node = Get-Command "node" -ErrorAction SilentlyContinue
-    if ($null -eq $node) {
-        Write-Host "Node.js is not installed. Please install Node.js."
-        Write-Host "Visit https://nodejs.org/ for installation instructions."
-        exit
-    } else {
-        Write-Host "Node.js is installed."
+    if (-Not (Get-Command node -ErrorAction SilentlyContinue)) {
+        Write-Host "Node.js is not installed. Installing Node.js..."
+
+        # Determine system architecture
+        $arch = if ([System.Environment]::Is64BitOperatingSystem) { "x64" } else { "x86" }
+
+        # Download and install Node.js
+        $nodeInstaller = "https://nodejs.org/dist/v14.17.0/node-v14.17.0-$arch.msi"
+        $installerPath = "$env:TEMP\nodejs.msi"
+        Invoke-WebRequest -Uri $nodeInstaller -OutFile $installerPath
+        Start-Process msiexec.exe -ArgumentList "/i", $installerPath, "/quiet", "/norestart" -Wait
+
+        if (-Not (Get-Command node -ErrorAction SilentlyContinue)) {
+            Write-Host "Failed to install Node.js. Please install it manually from https://nodejs.org/"
+            exit 1
+        }
     }
+    Write-Host "Node.js is installed."
 
     Write-Host "Checking for npm..."
-    $npm = Get-Command "npm" -ErrorAction SilentlyContinue
-    if ($null -eq $npm) {
+    if (-Not (Get-Command npm -ErrorAction SilentlyContinue)) {
         Write-Host "npm is not installed. Please ensure it is installed with Node.js."
-        exit
-    } else {
-        Write-Host "npm is installed."
+        exit 1
     }
+    Write-Host "npm is installed."
 }
 
-function Check-And-Install-Python {
+function Check-AndInstallPdfkit {
+    Write-Host "Checking for pdfkit..."
+    if (-Not (npm list pdfkit -g -depth=0 | Select-String -Pattern "pdfkit")) {
+        Write-Host "pdfkit is not installed. Installing pdfkit..."
+        npm install -g pdfkit
+    }
+    Write-Host "pdfkit is installed."
+}
+
+function Check-AndInstallPython {
     Write-Host "Checking for Python 3..."
-    $python = Get-Command "python3" -ErrorAction SilentlyContinue
-    if ($null -eq $python) {
+    if (-Not (Get-Command python -ErrorAction SilentlyContinue)) {
         Write-Host "Python 3 is not installed. Installing Python 3..."
-        Start-Process "brew" -ArgumentList "install python" -Wait
-        python3 -m pip install --upgrade pip
-    } else {
-        Write-Host "Python 3 is installed."
+        $pythonInstaller = "https://www.python.org/ftp/python/3.9.5/python-3.9.5-amd64.exe"
+        $installerPath = "$env:TEMP\python.exe"
+        Invoke-WebRequest -Uri $pythonInstaller -OutFile $installerPath
+        Start-Process -FilePath $installerPath -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait
+
+        if (-Not (Get-Command python -ErrorAction SilentlyContinue)) {
+            Write-Host "Failed to install Python 3. Please install it manually from https://www.python.org/"
+            exit 1
+        }
     }
+    Write-Host "Python 3 is installed."
+
+    Write-Host "Updating pip..."
+    python -m pip install --upgrade pip
 }
 
-function Check-And-Install-MySQL {
+function Check-AndInstallMySQL {
     Write-Host "Checking for MySQL..."
-    $mysql = Get-Command "mysql" -ErrorAction SilentlyContinue
-    if ($null -eq $mysql) {
+    if (-Not (Get-Command mysql -ErrorAction SilentlyContinue)) {
         Write-Host "MySQL is not installed. Installing MySQL..."
-        Start-Process "brew" -ArgumentList "install mysql" -Wait
-        Start-Process "brew" -ArgumentList "services start mysql" -Wait
-        Write-Host "MySQL has been installed and started."
-    } else {
-        Write-Host "MySQL is installed."
+        $mysqlInstaller = "https://dev.mysql.com/get/Downloads/MySQLInstaller/mysql-installer-web-community-8.0.23.0.msi"
+        $installerPath = "$env:TEMP\mysql.msi"
+        Invoke-WebRequest -Uri $mysqlInstaller -OutFile $installerPath
+        Start-Process msiexec.exe -ArgumentList "/i", $installerPath, "/quiet", "/norestart" -Wait
+
+        if (-Not (Get-Command mysql -ErrorAction SilentlyContinue)) {
+            Write-Host "Failed to install MySQL. Please install it manually from https://dev.mysql.com/downloads/installer/"
+            exit 1
+        }
     }
+    Write-Host "MySQL is installed."
 }
 
 function Setup-VirtualEnvironment {
@@ -51,53 +80,58 @@ function Setup-VirtualEnvironment {
     python -m venv "$env:USERPROFILE\tax_prep_venv"
     & "$env:USERPROFILE\tax_prep_venv\Scripts\Activate.ps1"
     python -m pip install mysql-connector-python
-    npm install crypto
+    npm install -g crypto
 }
 
-function Run-Database-Init-Script {
-    $config_path = "$env:USERPROFILE\config.json"
+function Run-DatabaseInitScript {
+    $configPath = "config.json"
 
     # Check if config file already exists and remove it
-    if (Test-Path $config_path) {
+    if (Test-Path $configPath) {
         Write-Host "Removing existing config file..."
-        Remove-Item $config_path
+        Remove-Item $configPath
     }
 
-    Write-Host "Please enter a MySQL username (e.g., 'Jacob') to use:"
-    $mysql_username = Read-Host
-    Write-Host "Please enter a MySQL password to use:"
-    $mysql_password = Read-Host -AsSecureString
-    $mysql_password = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($mysql_password))
+    $mysqlUsername = Read-Host "Please enter a MySQL username (e.g., 'Jacob') to use"
+    $mysqlPassword = Read-Host "Please enter a MySQL password to use" -AsSecureString | ConvertFrom-SecureString
 
     Write-Host "Encrypting and storing credentials..."
-    $script = @"
+    $cryptoScript = @"
 const crypto = require('crypto');
 const fs = require('fs');
 const algorithm = 'aes-256-cbc';
 const key = crypto.randomBytes(32);
 const iv = crypto.randomBytes(16);
 const cipher = crypto.createCipheriv(algorithm, key, iv);
-let crypted = cipher.update('$mysql_username:$mysql_password', 'utf8', 'hex');
+let crypted = cipher.update('$mysqlUsername:$mysqlPassword', 'utf8', 'hex');
 crypted += cipher.final('hex');
-fs.writeFileSync('$config_path', JSON.stringify({ key: key.toString('hex'), iv: iv.toString('hex'), encrypted: crypted }));
+fs.writeFileSync('$configPath', JSON.stringify({ key: key.toString('hex'), iv: iv.toString('hex'), encrypted: crypted }));
 "@
-    node -e $script
+    echo $cryptoScript | node
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Failed to encrypt and store credentials."
+        exit 1
+    }
 
     Write-Host "Downloading and running the database initialization script..."
     & "$env:USERPROFILE\tax_prep_venv\Scripts\Activate.ps1"
-    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/ethanreddick/tax-prep-tracker/main/init_db.py" -OutFile "$env:USERPROFILE\init_db.py"
-    python3 "$env:USERPROFILE\init_db.py" $mysql_username $mysql_password
+    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/ethanreddick/tax-prep-tracker/main/init_db.py" -OutFile "init_db.py"
+    python init_db.py $mysqlUsername $mysqlPassword
 
     Write-Host "Configuring MySQL authentication plugin..."
-    mysql -u "$mysql_username" -p"$mysql_password" -e "ALTER USER '$mysql_username'@'localhost' IDENTIFIED WITH mysql_native_password BY '$mysql_password'; FLUSH PRIVILEGES;"
+    mysql -u $mysqlUsername -p"$mysqlPassword" -e "ALTER USER '$mysqlUsername'@'localhost' IDENTIFIED WITH mysql_native_password BY '$mysqlPassword'; FLUSH PRIVILEGES;"
 }
 
+# Main function to perform checks
 function Main {
-    Check-And-Install-Node
-    Check-And-Install-Python
-    Check-And-Install-MySQL
+    Check-AndInstallNode
+    Check-AndInstallPdfkit
+    Check-AndInstallPython
+    Check-AndInstallMySQL
     Setup-VirtualEnvironment
-    Run-Database-Init-Script
+    Run-DatabaseInitScript
 }
 
+# Call the main function
 Main

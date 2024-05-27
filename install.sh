@@ -6,9 +6,28 @@
 check_and_install_node() {
     echo "Checking for Node.js..."
     if ! node --version &>/dev/null; then
-        echo "Node.js is not installed. Please install Node.js."
-        echo "Visit https://nodejs.org/ for installation instructions."
-        exit 1
+        echo "Node.js is not installed. Installing Node.js..."
+
+        # Detect the OS
+        OS=$(uname -s)
+        if [ "$OS" = "Linux" ]; then
+            # For Linux, use the NodeSource setup script
+            curl -fsSL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+        elif [ "$OS" = "Darwin" ]; then
+            # For macOS, use Homebrew if available
+            if ! brew --version &>/dev/null; then
+                echo "Homebrew is not installed. Please install Homebrew."
+                echo "Visit https://brew.sh/ for installation instructions."
+                exit 1
+            else
+                brew install node
+            fi
+        else
+            echo "Unsupported OS. Please install Node.js manually."
+            echo "Visit https://nodejs.org/ for installation instructions."
+            exit 1
+        fi
     else
         echo "Node.js is installed."
     fi
@@ -19,6 +38,17 @@ check_and_install_node() {
         exit 1
     else
         echo "npm is installed."
+    fi
+}
+
+# Check and install pdfkit
+check_and_install_pdfkit() {
+    echo "Checking for pdfkit..."
+    if ! npm list pdfkit &>/dev/null; then
+        echo "pdfkit is not installed. Installing pdfkit..."
+        npm install pdfkit
+    else
+        echo "pdfkit is installed."
     fi
 }
 
@@ -98,6 +128,7 @@ main() {
     fi
 
     check_and_install_node
+    check_and_install_pdfkit
     check_and_install_python
     check_and_install_mysql
     setup_virtual_environment
