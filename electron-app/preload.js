@@ -13,10 +13,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   removeAccount: (accountId) => ipcRenderer.invoke("remove-account", accountId),
   addTransaction: (transaction) =>
     ipcRenderer.invoke("add-transaction", transaction),
-  fetchTransactions: () => ipcRenderer.invoke("fetch-transactions"),
   fetchTransactionHistory: () =>
     ipcRenderer.invoke("fetch-transaction-history"),
   openDirectoryDialog: () => ipcRenderer.invoke("open-directory-dialog"),
   generatePdfReport: (reportPath, content) =>
     ipcRenderer.invoke("generate-pdf-report", { reportPath, content }),
+  fetchTransactions: () => ipcRenderer.invoke("fetch-transactions"),
 });

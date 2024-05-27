@@ -214,7 +214,7 @@ const addTransactionFormHTML = `
 
 // Manage Transactions Page
 const manageTransactionsHTML = `
-    <form id="manageTransactionForm">
+    <div class="manage-transactions">
         <h2>Manage Transactions</h2>
         <div class="search-bar">
             <span class="search-icon">&#128269;</span> <!-- Unicode for spyglass icon -->
@@ -234,7 +234,7 @@ const manageTransactionsHTML = `
             <span id="pageInfo">Page 1 of 1</span>
             <button id="nextPage" onclick="nextPage()">&#8250;</button>
         </div>
-    </form>
+    </div>
 `;
 
 // Add the "Generate Report" page content
