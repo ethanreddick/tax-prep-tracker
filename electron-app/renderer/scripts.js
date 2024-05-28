@@ -28,7 +28,7 @@ const addClientFormHTML = `
             <input type="text" id="bank" name="bank">
         </div>
         <button type="button" class="action-btn" onclick="submitAddClient()">Add Client</button>
-        <p id="addClientMessage" style="color: darkgreen;"></p>
+        <p id="addClientMessage" style="color: darkgreen; text-align: center;"></p>
     </form>
 `;
 
@@ -442,6 +442,21 @@ function addEventListeners() {
 // Ensure that the DOM is fully loaded before adding event listeners
 document.addEventListener("DOMContentLoaded", addEventListeners);
 
+// Function to validate client data
+function validateClientData(client) {
+  const nameRegex = /^[^\d]*$/; // No numbers
+  const ssnRegex = /^\d{3}-\d{2}-\d{4}$/; // SSN format ###-##-####
+  let errorMessage = "";
+
+  if (!nameRegex.test(client.name)) {
+    errorMessage = "Client names should not contain numbers.";
+  } else if (!ssnRegex.test(client.ssn)) {
+    errorMessage = "Client SSN's should be written in the format ###-##-####.";
+  }
+
+  return errorMessage;
+}
+
 // Add a new client to the database
 function submitAddClient() {
   let client = {
@@ -451,29 +466,31 @@ function submitAddClient() {
     bank: document.getElementById("bank").value,
   };
 
+  const validationError = validateClientData(client);
+  const messageElement = document.getElementById("addClientMessage");
+  if (validationError) {
+    messageElement.innerText = validationError;
+    messageElement.style.color = "red";
+    return;
+  }
+
   window.electronAPI
     .addClient(client)
     .then((response) => {
-      const messageElement = document.getElementById("addClientMessage");
-      if (messageElement) {
-        messageElement.innerText = `${client.name} was successfully added to the database.`;
-      }
+      messageElement.innerText = `${client.name} was successfully added to the database.`;
+      messageElement.style.color = "darkgreen";
 
-      // Change button text to "Add Another Client"
       const addButton = document.querySelector("#addClientForm button");
       if (addButton) {
         addButton.innerText = "Add Another Client";
-        addButton.onclick = clearFields; // Set onclick to clear fields
+        addButton.onclick = clearFields;
       }
     })
     .catch((error) => {
-      const messageElement = document.getElementById("addClientMessage");
-      if (messageElement) {
-        messageElement.innerText =
-          "There was an error adding the client to the database, click here for details.";
-        messageElement.style.color = "red";
-        messageElement.onclick = () => alert(error.message);
-      }
+      messageElement.innerText =
+        "There was an error adding the client to the database, click here for details.";
+      messageElement.style.color = "red";
+      messageElement.onclick = () => alert(error.message);
     });
 }
 
@@ -587,7 +604,18 @@ function submitRemoveClient() {
     });
 }
 
-// Manage Account
+// Function to validate account data
+function validateAccountData(account) {
+  let errorMessage = "";
+
+  if (isNaN(account.accountBalance)) {
+    errorMessage = "Account balances must be a numeric value.";
+  }
+
+  return errorMessage;
+}
+
+// Function to submit add account form
 function submitAddAccount() {
   let account = {
     description: document.getElementById("description").value,
@@ -596,29 +624,31 @@ function submitAddAccount() {
     accountBalance: parseFloat(document.getElementById("accountBalance").value),
   };
 
+  const validationError = validateAccountData(account);
+  const messageElement = document.getElementById("addAccountMessage");
+  if (validationError) {
+    messageElement.innerText = validationError;
+    messageElement.style.color = "red";
+    return;
+  }
+
   window.electronAPI
     .addAccount(account)
     .then((response) => {
-      const messageElement = document.getElementById("addAccountMessage");
-      if (messageElement) {
-        messageElement.innerText = `${account.description} was successfully added to the database.`;
-      }
+      messageElement.innerText = `${account.description} was successfully added to the database.`;
+      messageElement.style.color = "darkgreen";
 
-      // Change button text to "Add Another Account"
       const addButton = document.querySelector("#addAccountForm button");
       if (addButton) {
         addButton.innerText = "Add Another Account";
-        addButton.onclick = clearAccountFields; // Set onclick to clear fields
+        addButton.onclick = clearAccountFields;
       }
     })
     .catch((error) => {
-      const messageElement = document.getElementById("addAccountMessage");
-      if (messageElement) {
-        messageElement.innerText =
-          "There was an error adding the account to the database, click here for details.";
-        messageElement.style.color = "red";
-        messageElement.onclick = () => alert(error.message);
-      }
+      messageElement.innerText =
+        "There was an error adding the account to the database, click here for details.";
+      messageElement.style.color = "red";
+      messageElement.onclick = () => alert(error.message);
     });
 }
 
