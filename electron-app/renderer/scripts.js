@@ -346,21 +346,28 @@ function createTransactionItem(transaction) {
   transactionDetails.classList.add("transaction-details");
 
   const clientName = document.createElement("span");
+  clientName.classList.add("client-name"); // Add this line
   clientName.textContent = `Client: ${transaction.client_name}`;
   transactionDetails.appendChild(clientName);
+
+  const accountDetails = document.createElement("div");
+  accountDetails.classList.add("account-details");
 
   transaction.accounts.forEach((account) => {
     const accountDetail = document.createElement("span");
     const amount =
-      account.type === "Debit" ? `(${account.amount})` : account.amount;
+      account.type === "Debit"
+        ? `($${account.amount.toFixed(2)})`
+        : `$${account.amount.toFixed(2)}`;
     accountDetail.textContent = `${account.description}: ${amount}`;
-    transactionDetails.appendChild(accountDetail);
+    accountDetails.appendChild(accountDetail);
   });
+
+  transactionDetails.appendChild(accountDetails);
 
   const removeButton = document.createElement("button");
   removeButton.classList.add("remove-btn");
-  removeButton.textContent = "Remove";
-  // Add event listener for remove button here if needed
+  removeButton.textContent = "Delete";
   transactionDetails.appendChild(removeButton);
 
   return { transactionItem, transactionDetails };

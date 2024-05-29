@@ -288,26 +288,34 @@ form button {
 
 .transaction-details {
     display: none; /* Hidden by default */
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column; /* Change to column direction */
     padding: 10px 0;
     border-top: none; /* Remove top border */
     margin-top: 0;
     width: 100%;
     background-color: #f9f9f9;
     border-bottom: 1px solid #ccc; /* Ensure bottom border is present */
+    position: relative;
 }
 
 .transaction-details.active {
     display: flex; /* Display as flex when active */
 }
 
-.transaction-item.expanded {
-    border-bottom: none; /* Remove bottom border when expanded */
+.client-name, /* Add this line */
+.account-details {
+    display: flex;
+    flex-wrap: wrap; /* Allow accounts to wrap to a new line */
+    margin-top: 10px; /* Add some spacing */
+    padding-left: 10px; /* Align with the date column */
 }
 
-.transaction-details span {
+.account-details span {
     margin-right: 15px;
+}
+
+.transaction-item.expanded {
+    border-bottom: none; /* Remove bottom border when expanded */
 }
 
 .remove-btn {
@@ -317,6 +325,11 @@ form button {
     padding: 5px 10px;
     cursor: pointer;
     border-radius: 3px;
+    margin-left: auto; /* Align the button to the right */
+    position: absolute; /* Position absolutely */
+    right: 10px; /* Align to the right */
+    top: 50%; /* Center vertically */
+    transform: translateY(-50%); /* Center vertically */
 }
 
 .transaction-item span:first-child {
