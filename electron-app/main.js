@@ -527,3 +527,74 @@ ipcMain.handle(
     }
   },
 );
+
+ipcMain.handle("delete-transaction", async (event, transactionId) => {
+  try {
+    // Start a transaction
+    await connection.beginTransaction();
+
+    // Get the transaction details
+    const transactionLines = await new Promise((resolve, reject) => {
+      connection.query(
+        `SELECT account_id, amount FROM transaction_lines WHERE transaction_id = ?`,
+        [transactionId],
+        (error, results) => {
+          if (error) return reject(error);
+          resolve(results);
+        },
+      );
+    });
+
+    if (!Array.isArray(transactionLines) || transactionLines.length === 0) {
+      throw new Error(
+        "No transaction lines found for the given transaction ID.",
+      );
+    }
+
+    // Rollback the changes to the accounts
+    for (const line of transactionLines) {
+      await new Promise((resolve, reject) => {
+        connection.query(
+          `UPDATE accounts SET account_balance = account_balance + ? WHERE account_id = ?`,
+          [-line.amount, line.account_id],
+          (error) => {
+            if (error) return reject(error);
+            resolve();
+          },
+        );
+      });
+    }
+
+    // Delete the transaction lines
+    await new Promise((resolve, reject) => {
+      connection.query(
+        `DELETE FROM transaction_lines WHERE transaction_id = ?`,
+        [transactionId],
+        (error) => {
+          if (error) return reject(error);
+          resolve();
+        },
+      );
+    });
+
+    // Delete the transaction
+    await new Promise((resolve, reject) => {
+      connection.query(
+        `DELETE FROM transactions WHERE transaction_id = ?`,
+        [transactionId],
+        (error) => {
+          if (error) return reject(error);
+          resolve();
+        },
+      );
+    });
+
+    // Commit the transaction
+    await connection.commit();
+    return { success: true };
+  } catch (error) {
+    // Rollback the transaction in case of error
+    await connection.rollback();
+    return { success: false, error: error.message };
+  }
+});

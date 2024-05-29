@@ -368,6 +368,20 @@ function createTransactionItem(transaction) {
   const removeButton = document.createElement("button");
   removeButton.classList.add("remove-btn");
   removeButton.textContent = "Delete";
+  removeButton.addEventListener("click", async () => {
+    if (confirm("Are you sure you want to delete this transaction?")) {
+      const result = await window.electronAPI.deleteTransaction(
+        transaction.transaction_id,
+      );
+      if (result.success) {
+        transactionItem.remove();
+        transactionDetails.remove();
+      } else {
+        alert(`Failed to delete transaction: ${result.error}`);
+      }
+    }
+  });
+
   transactionDetails.appendChild(removeButton);
 
   return { transactionItem, transactionDetails };
