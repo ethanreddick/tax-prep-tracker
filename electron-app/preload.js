@@ -19,8 +19,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
   fetchTransactionDetails: () =>
     ipcRenderer.invoke("fetch-transaction-details"),
   openDirectoryDialog: () => ipcRenderer.invoke("open-directory-dialog"),
-  generatePdfReport: (reportPath, content) =>
-    ipcRenderer.invoke("generate-pdf-report", { reportPath, content }),
+  generatePdfReport: (reportPath, content, reportType) =>
+    ipcRenderer.invoke("generate-pdf-report", {
+      reportPath,
+      content,
+      reportType,
+    }),
   deleteTransaction: (transactionId) =>
     ipcRenderer.invoke("delete-transaction", transactionId),
 });
