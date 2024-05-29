@@ -409,3 +409,25 @@ input[readonly] {
     background-color: #e0e0e0;
     cursor: not-allowed;
 }
+
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1; /* Ensure it fills the space like other inputs */
+}
+
+.dollar-sign {
+    position: absolute;
+    font-size: 16px;
+    color: #555;
+}
+
+.transaction-dollar-sign {
+    left: 10px; /* Adjust as needed for transaction amount fields */
+}
+
+.input-wrapper input {
+    padding-left: 20px; /* Adjust padding to fit the dollar sign */
+    width: 100%; /* Ensure the input takes full width */
+}

@@ -103,7 +103,10 @@ const addAccountFormHTML = `
         </div>
         <div class="form-group">
             <label for="accountBalance">Balance:</label>
-            <input type="number" id="accountBalance" name="accountBalance" step="0.01">
+            <div class="input-wrapper">
+                <span class="dollar-sign account-dollar-sign">$</span>
+                <input type="number" id="accountBalance" name="accountBalance" step="0.01">
+            </div>
         </div>
         <button type="button" class="action-btn" onclick="submitAddAccount()">Add Account</button>
         <p id="addAccountMessage" style="color: darkgreen;"></p>
@@ -144,7 +147,10 @@ const updateAccountFormHTML = `
         </div>
         <div class="form-group">
             <label for="updateBalance">Balance:</label>
-            <input type="number" id="updateBalance" name="account_balance" readonly style="background-color: #e0e0e0;">
+            <div class="input-wrapper">
+                <span class="dollar-sign account-dollar-sign">$</span>
+                <input type="number" id="updateBalance" name="account_balance" readonly style="background-color: #e0e0e0;">
+            </div>
         </div>
         <button type="button" class="action-btn" onclick="submitUpdateAccount()">Update Account</button>
         <p id="updateAccountMessage" style="color: darkgreen;"></p>
@@ -191,7 +197,10 @@ const addTransactionFormHTML = `
                     <option value="Debit" selected>Debit</option>
                     <option value="Credit">Credit</option>
                 </select>
-                <input type="number" class="transactionAmount" name="transactionAmount" placeholder="Amount" step="0.01">
+                <div class="input-wrapper">
+                    <span class="dollar-sign transaction-dollar-sign">$</span>
+                    <input type="number" class="transactionAmount" name="transactionAmount" placeholder="Amount" step="0.01">
+                </div>
             </div>
             <div class="transaction-line">
                 <select class="transactionAccount" name="transactionAccount">
@@ -201,7 +210,10 @@ const addTransactionFormHTML = `
                     <option value="Debit">Debit</option>
                     <option value="Credit" selected>Credit</option>
                 </select>
-                <input type="number" class="transactionAmount" name="transactionAmount" placeholder="Amount" step="0.01">
+                <div class="input-wrapper">
+                    <span class="dollar-sign transaction-dollar-sign">$</span>
+                    <input type="number" class="transactionAmount" name="transactionAmount" placeholder="Amount" step="0.01">
+                </div>
             </div>
         </div>
         <button type="button" class="action-btn" onclick="addTransactionLine()">+ Add Account</button>
@@ -823,7 +835,6 @@ function loadAccountData(accountId) {
     document.getElementById("updateClass").value = account.account_class;
     document.getElementById("updateStatement").value = account.statement_type;
     document.getElementById("updateBalance").value = account.account_balance;
-    document.getElementById("updateBalance").readOnly = true;
   });
 }
 
@@ -875,7 +886,10 @@ function addTransactionLine() {
         <option value="Debit" selected>Debit</option>
         <option value="Credit">Credit</option>
       </select>
-      <input type="number" class="transactionAmount" name="transactionAmount" placeholder="Amount" step="0.01">
+      <div class="input-wrapper">
+        <span class="dollar-sign transaction-dollar-sign">$</span>
+        <input type="number" class="transactionAmount" name="transactionAmount" placeholder="Amount" step="0.01">
+      </div>
     </div>
   `;
   transactionLinesDiv.insertAdjacentHTML("beforeend", newLineHTML);
