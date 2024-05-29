@@ -879,24 +879,23 @@ function addTransactionLine() {
   `;
   transactionLinesDiv.insertAdjacentHTML("beforeend", newLineHTML);
 
-  // Populate account dropdowns with options
+  // Populate account dropdowns with options only for the newly added line
+  const newDropdown = transactionLinesDiv.lastElementChild.querySelector(
+    ".transactionAccount",
+  );
   window.electronAPI.fetchAccounts().then((accounts) => {
-    const accountDropdowns =
-      document.getElementsByClassName("transactionAccount");
-    Array.from(accountDropdowns).forEach((dropdown) => {
-      accounts.forEach((account) => {
-        let option = new Option(account.description, account.account_id);
-        dropdown.add(option);
-      });
+    accounts.forEach((account) => {
+      let option = new Option(account.description, account.account_id);
+      newDropdown.add(option);
     });
 
-    // Restore the previously selected values
+    // Restore the previously selected values for existing lines
     currentLines.forEach((line, index) => {
-      accountDropdowns[index].value = line.account_id;
-      document.getElementsByClassName("transactionType")[index].value =
-        line.type;
-      document.getElementsByClassName("transactionAmount")[index].value =
-        line.amount;
+      const currentLine =
+        document.getElementsByClassName("transaction-line")[index];
+      currentLine.querySelector(".transactionAccount").value = line.account_id;
+      currentLine.querySelector(".transactionType").value = line.type;
+      currentLine.querySelector(".transactionAmount").value = line.amount;
     });
   });
 }
