@@ -323,18 +323,18 @@ function createTransactionItem(transaction) {
 
   const expandArrow = document.createElement("span");
   expandArrow.classList.add("expand-arrow");
-  expandArrow.innerHTML = "&#x25BC;"; // Downward arrow
+  expandArrow.innerHTML = "&#x002B;"; // Downward arrow
 
   expandArrow.addEventListener("click", () => {
     const transactionDetails = transactionItem.nextElementSibling;
     if (transactionDetails.classList.contains("active")) {
       transactionDetails.classList.remove("active");
       transactionItem.classList.remove("expanded");
-      expandArrow.innerHTML = "&#x25BC;"; // Downward arrow
+      expandArrow.innerHTML = "&#x002B;"; // Downward arrow
     } else {
       transactionDetails.classList.add("active");
       transactionItem.classList.add("expanded");
-      expandArrow.innerHTML = "&#x25B2;"; // Upward arrow
+      expandArrow.innerHTML = "&#x2212;"; // Upward arrow
     }
   });
 
@@ -980,7 +980,7 @@ function loadTransactionHistory() {
 
       const expandArrow = document.createElement("span");
       expandArrow.classList.add("expand-arrow");
-      expandArrow.innerHTML = "&#x25BC;"; // Down arrow
+      expandArrow.innerHTML = "&#x002B;"; // Down arrow
       expandArrow.addEventListener("click", () =>
         toggleTransactionDetails(transaction.transaction_id, expandArrow),
       );
