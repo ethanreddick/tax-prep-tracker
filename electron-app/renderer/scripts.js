@@ -346,7 +346,7 @@ function createTransactionItem(transaction) {
   transactionDetails.classList.add("transaction-details");
 
   const clientName = document.createElement("span");
-  clientName.classList.add("client-name"); // Add this line
+  clientName.classList.add("client-name");
   clientName.textContent = `Client: ${transaction.client_name}`;
   transactionDetails.appendChild(clientName);
 
@@ -368,20 +368,9 @@ function createTransactionItem(transaction) {
   const removeButton = document.createElement("button");
   removeButton.classList.add("remove-btn");
   removeButton.textContent = "Delete";
-  removeButton.addEventListener("click", async () => {
-    if (confirm("Are you sure you want to delete this transaction?")) {
-      const result = await window.electronAPI.deleteTransaction(
-        transaction.transaction_id,
-      );
-      if (result.success) {
-        transactionItem.remove();
-        transactionDetails.remove();
-      } else {
-        alert(`Failed to delete transaction: ${result.error}`);
-      }
-    }
-  });
-
+  removeButton.addEventListener("click", () =>
+    deleteTransaction(transaction.transaction_id),
+  );
   transactionDetails.appendChild(removeButton);
 
   return { transactionItem, transactionDetails };
@@ -403,6 +392,26 @@ function displayTransactions(transactionsToRender = transactions) {
   });
 
   updatePagination(transactionsToRender);
+}
+
+function reloadManageTransactions() {
+  manageTransactions();
+}
+
+function deleteTransaction(transactionId) {
+  if (confirm("Are you sure you want to delete this transaction?")) {
+    window.electronAPI.deleteTransaction(transactionId).then((response) => {
+      if (response.success) {
+        alert("Transaction deleted successfully.");
+        reloadManageTransactions(); // Reload the transactions page
+      } else {
+        alert("Failed to delete transaction: " + response.message);
+      }
+    });
+    reloadManageTransactions();
+  } else {
+    reloadManageTransactions(); // Reload the transactions page on cancel
+  }
 }
 
 function updatePagination(transactionsToRender = transactions) {
