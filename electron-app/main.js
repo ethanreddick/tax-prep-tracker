@@ -413,6 +413,7 @@ ipcMain.handle(
 
       // Title and date
       doc.fontSize(20).text("Balance Sheet", { align: "center" });
+      doc.moveDown(0.5);
 
       // Add the current date in full form below the title
       const currentDate = new Date().toLocaleDateString("en-US", {
@@ -421,102 +422,115 @@ ipcMain.handle(
         month: "long",
         day: "numeric",
       });
-      doc.fontSize(14).text(`Date: ${currentDate}`, { align: "center" });
+      doc.fontSize(14).text(`${currentDate}`, { align: "center" });
       doc.moveDown(2);
-
-      const columnWidth = (doc.page.width - 80) / 3;
-      const startY = doc.y;
-
-      // Draw vertical separators
-      const separatorX1 = 40 + columnWidth;
-      const separatorX2 = 40 + columnWidth * 2;
-
-      doc
-        .moveTo(separatorX1, startY)
-        .lineTo(separatorX1, startY + 500)
-        .stroke();
-      doc
-        .moveTo(separatorX2, startY)
-        .lineTo(separatorX2, startY + 500)
-        .stroke();
 
       // Assets
       doc
         .fontSize(16)
-        .text("Assets", 40, startY, { width: columnWidth, align: "center" });
-      doc
-        .fontSize(12)
-        .text(`Total Assets: $${totalAssets.toFixed(2)}`, 40, startY + 20, {
-          width: columnWidth,
-          align: "center",
-        });
-      let currentY = startY + 40;
+        .font("Helvetica-Bold")
+        .text("ASSETS", { align: "left", underline: true });
+      doc.moveDown(0.5);
+
       assetAccounts.forEach((account) => {
-        doc.text(account.description, 50, currentY, {
-          width: columnWidth - 20,
-        });
-        doc.text(
-          `$${account.account_balance.toFixed(2)}`,
-          40 + columnWidth - 190,
-          currentY,
-          { width: columnWidth, align: "right" },
-        );
-        currentY += 20;
+        doc
+          .fontSize(12)
+          .font("Helvetica")
+          .text(account.description, { continued: true });
+        doc
+          .fontSize(12)
+          .text(`$${account.account_balance.toFixed(2)}`, { align: "right" });
+        doc.moveDown(0.5);
       });
+
+      doc.moveDown(0.5);
+      doc
+        .fontSize(16)
+        .font("Helvetica-Bold")
+        .moveTo(40, doc.y)
+        .lineTo(550, doc.y)
+        .stroke()
+        .moveDown(0.5);
+      doc.text(`TOTAL ASSETS`, { continued: true, underline: false });
+      doc.text(`$${totalAssets.toFixed(2)}`, { align: "right" });
+      doc.moveDown(2.5); // Increase space after total
 
       // Liabilities
-      doc.fontSize(16).text("Liabilities", 40 + columnWidth, startY, {
-        width: columnWidth,
-        align: "center",
-      });
       doc
-        .fontSize(12)
-        .text(
-          `Total Liabilities: $${totalLiabilities.toFixed(2)}`,
-          40 + columnWidth,
-          startY + 20,
-          { width: columnWidth, align: "center" },
-        );
-      currentY = startY + 40;
+        .fontSize(16)
+        .font("Helvetica-Bold")
+        .text("LIABILITIES", { align: "left", underline: true });
+      doc.moveDown(0.5);
+
       liabilityAccounts.forEach((account) => {
-        doc.text(account.description, 50 + columnWidth, currentY, {
-          width: columnWidth - 20,
-        });
-        doc.text(
-          `$${account.account_balance.toFixed(2)}`,
-          40 + columnWidth * 2 - 190,
-          currentY,
-          { width: columnWidth, align: "right" },
-        );
-        currentY += 20;
+        doc
+          .fontSize(12)
+          .font("Helvetica")
+          .text(account.description, { continued: true });
+        doc
+          .fontSize(12)
+          .text(`$${account.account_balance.toFixed(2)}`, { align: "right" });
+        doc.moveDown(0.5);
       });
 
-      // Equity
-      doc.fontSize(16).text("Equity", 40 + columnWidth * 2, startY, {
-        width: columnWidth,
-        align: "center",
-      });
+      doc.moveDown(0.5);
       doc
         .fontSize(12)
-        .text(
-          `Total Equity: $${totalEquity.toFixed(2)}`,
-          40 + columnWidth * 2,
-          startY + 20,
-          { width: columnWidth, align: "center" },
-        );
-      currentY = startY + 40;
+        .font("Helvetica-Bold")
+        .moveTo(40, doc.y)
+        .lineTo(550, doc.y)
+        .stroke()
+        .moveDown(0.5);
+      doc.text(`TOTAL LIABILITIES`, { continued: true, underline: false });
+      doc.text(`$${totalLiabilities.toFixed(2)}`, { align: "right" });
+      doc.moveDown(2.5); // Increase space after total
+
+      // Owner's Equity
+      doc
+        .fontSize(16)
+        .font("Helvetica-Bold")
+        .text("OWNER'S EQUITY", { align: "left", underline: true });
+      doc.moveDown(0.5);
+
       equityAccounts.forEach((account) => {
-        doc.text(account.description, 50 + columnWidth * 2, currentY, {
-          width: columnWidth - 20,
-        });
-        doc.text(
-          `$${account.account_balance.toFixed(2)}`,
-          40 + columnWidth * 3 - 190,
-          currentY,
-          { width: columnWidth, align: "right" },
-        );
-        currentY += 20;
+        doc
+          .fontSize(12)
+          .font("Helvetica")
+          .text(account.description, { continued: true });
+        doc
+          .fontSize(12)
+          .text(`$${account.account_balance.toFixed(2)}`, { align: "right" });
+        doc.moveDown(0.5);
       });
+
+      doc.moveDown(0.5);
+      doc
+        .fontSize(12)
+        .font("Helvetica-Bold")
+        .moveTo(40, doc.y)
+        .lineTo(550, doc.y)
+        .stroke()
+        .moveDown(0.5);
+      doc.text(`Total Owner's Equity`, { continued: true });
+      doc.text(`$${totalEquity.toFixed(2)}`, { align: "right" });
+      doc.moveDown(2.5); // Increase space after total
+
+      // Total Liabilities and Owner's Equity
+      doc.moveDown(1.5);
+      doc
+        .fontSize(16)
+        .font("Helvetica-Bold")
+        .text("TOTAL LIABILITIES & OWNER'S EQUITY", {
+          align: "left",
+          underline: false,
+          continued: true,
+        });
+      doc
+        .fontSize(16)
+        .font("Helvetica-Bold")
+        .text(`$${(totalLiabilities + totalEquity).toFixed(2)}`, {
+          align: "right",
+        });
 
       doc.end();
 
