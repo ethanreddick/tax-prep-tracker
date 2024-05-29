@@ -144,7 +144,7 @@ const updateAccountFormHTML = `
         </div>
         <div class="form-group">
             <label for="updateBalance">Balance:</label>
-            <input type="number" id="updateBalance" name="account_balance" step="0.01">
+            <input type="number" id="updateBalance" name="account_balance" readonly style="background-color: #e0e0e0;">
         </div>
         <button type="button" class="action-btn" onclick="submitUpdateAccount()">Update Account</button>
         <p id="updateAccountMessage" style="color: darkgreen;"></p>
@@ -823,6 +823,7 @@ function loadAccountData(accountId) {
     document.getElementById("updateClass").value = account.account_class;
     document.getElementById("updateStatement").value = account.statement_type;
     document.getElementById("updateBalance").value = account.account_balance;
+    document.getElementById("updateBalance").readOnly = true;
   });
 }
 
