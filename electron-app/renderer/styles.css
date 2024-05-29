@@ -265,8 +265,58 @@ form button {
 .transaction-item {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     padding: 10px;
     border-bottom: 1px solid #ccc;
+    position: relative;
+}
+
+.transaction-item span {
+    flex: 1;
+    text-align: left; /* Align description to the left */
+}
+
+.transaction-item .expand-arrow {
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0 10px;
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.transaction-details {
+    display: none; /* Hidden by default */
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-top: none; /* Remove top border */
+    margin-top: 0;
+    width: 100%;
+    background-color: #f9f9f9;
+    border-bottom: 1px solid #ccc; /* Ensure bottom border is present */
+}
+
+.transaction-details.active {
+    display: flex; /* Display as flex when active */
+}
+
+.transaction-item.expanded {
+    border-bottom: none; /* Remove bottom border when expanded */
+}
+
+.transaction-details span {
+    margin-right: 15px;
+}
+
+.remove-btn {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 3px;
 }
 
 .transaction-item span:first-child {

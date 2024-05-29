@@ -320,6 +320,46 @@ ipcMain.handle("fetch-transaction-history", async () => {
   });
 });
 
+ipcMain.handle("fetch-transaction-details", async () => {
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT
+        t.transaction_id,
+        c.name AS client_name,
+        t.transaction_date,
+        t.description,
+        JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'description', a.description,
+            'type', IF(tl.amount > 0, 'Credit', 'Debit'),
+            'amount', ABS(tl.amount)
+          )
+        ) AS accounts
+      FROM transactions t
+      JOIN clients c ON t.client_id = c.client_id
+      JOIN transaction_lines tl ON t.transaction_id = tl.transaction_id
+      JOIN accounts a ON tl.account_id = a.account_id
+      GROUP BY t.transaction_id, c.name, t.transaction_date, t.description
+      ORDER BY t.transaction_date DESC;
+    `;
+
+    connection.query(query, (error, results) => {
+      if (error) {
+        console.error("Error fetching transaction details:", error);
+        reject(error);
+      } else {
+        // Parse accounts JSON string
+        const parsedResults = results.map((row) => ({
+          ...row,
+          accounts: JSON.parse(row.accounts),
+        }));
+        console.log("Fetched transaction details:", parsedResults); // Debug log
+        resolve(parsedResults);
+      }
+    });
+  });
+});
+
 ipcMain.handle("fetch-transactions", async () => {
   return new Promise((resolve, reject) => {
     connection.query(

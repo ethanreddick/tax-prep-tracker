@@ -215,27 +215,27 @@ const addTransactionFormHTML = `
 
 // Manage Transactions Page
 const manageTransactionsHTML = `
-    <div class="manage-transactions">
-        <h2>Manage Transactions</h2>
-        <div class="search-bar">
-            <span class="search-icon">&#128269;</span> <!-- Unicode for spyglass icon -->
-            <input type="text" id="searchTransactions" placeholder="Search Transactions">
-        </div>
-        <div class="transaction-list">
-            <div class="transaction-header">
-                <span id="transactionDateHeader" class="sortable">Date</span>
-                <span id="transactionDescriptionHeader">Description</span>
-            </div>
-            <div id="transactionItems">
-                <!-- Transactions will be loaded here -->
-            </div>
-        </div>
-        <div class="pagination">
-            <button id="prevPage" onclick="prevPage()">&#8249;</button>
-            <span id="pageInfo">Page 1 of 1</span>
-            <button id="nextPage" onclick="nextPage()">&#8250;</button>
-        </div>
+  <form id="manageTransactionForm">
+    <h2>Manage Transactions</h2>
+    <div class="search-bar">
+      <span class="search-icon">&#128269;</span> <!-- Unicode for spyglass icon -->
+      <input type="text" id="searchTransactions" placeholder="Search Transactions">
     </div>
+    <div class="transaction-list">
+      <div class="transaction-header">
+        <span id="transactionDateHeader" class="sortable">Date</span>
+        <span id="transactionDescriptionHeader">Description</span>
+      </div>
+      <div id="transactionItems">
+        <!-- Transactions will be loaded here -->
+      </div>
+    </div>
+    <div class="pagination">
+      <button id="prevPage" onclick="prevPage()">&#8249;</button>
+      <span id="pageInfo">Page 1 of 1</span>
+      <button id="nextPage" onclick="nextPage()">&#8250;</button>
+    </div>
+  </form>
 `;
 
 // Add the "Generate Report" page content
@@ -288,7 +288,8 @@ let currentPage = 1;
 const itemsPerPage = 10;
 
 function loadTransactions() {
-  window.electronAPI.fetchTransactions().then((data) => {
+  window.electronAPI.fetchTransactionDetails().then((data) => {
+    console.log("Fetched transactions:", data); // Debug log
     transactions = data;
     displayTransactions();
   });
@@ -308,6 +309,63 @@ function formatDate(date, options = {}) {
   return date.toLocaleDateString("en-US", optionsConfig);
 }
 
+function createTransactionItem(transaction) {
+  const transactionItem = document.createElement("div");
+  transactionItem.classList.add("transaction-item");
+
+  const transactionDate = document.createElement("span");
+  transactionDate.textContent = formatDate(
+    new Date(transaction.transaction_date),
+  );
+
+  const transactionDescription = document.createElement("span");
+  transactionDescription.textContent = transaction.description;
+
+  const expandArrow = document.createElement("span");
+  expandArrow.classList.add("expand-arrow");
+  expandArrow.innerHTML = "&#x25BC;"; // Downward arrow
+
+  expandArrow.addEventListener("click", () => {
+    const transactionDetails = transactionItem.nextElementSibling;
+    if (transactionDetails.classList.contains("active")) {
+      transactionDetails.classList.remove("active");
+      transactionItem.classList.remove("expanded");
+      expandArrow.innerHTML = "&#x25BC;"; // Downward arrow
+    } else {
+      transactionDetails.classList.add("active");
+      transactionItem.classList.add("expanded");
+      expandArrow.innerHTML = "&#x25B2;"; // Upward arrow
+    }
+  });
+
+  transactionItem.appendChild(transactionDate);
+  transactionItem.appendChild(transactionDescription);
+  transactionItem.appendChild(expandArrow);
+
+  const transactionDetails = document.createElement("div");
+  transactionDetails.classList.add("transaction-details");
+
+  const clientName = document.createElement("span");
+  clientName.textContent = `Client: ${transaction.client_name}`;
+  transactionDetails.appendChild(clientName);
+
+  transaction.accounts.forEach((account) => {
+    const accountDetail = document.createElement("span");
+    const amount =
+      account.type === "Debit" ? `(${account.amount})` : account.amount;
+    accountDetail.textContent = `${account.description}: ${amount}`;
+    transactionDetails.appendChild(accountDetail);
+  });
+
+  const removeButton = document.createElement("button");
+  removeButton.classList.add("remove-btn");
+  removeButton.textContent = "Remove";
+  // Add event listener for remove button here if needed
+  transactionDetails.appendChild(removeButton);
+
+  return { transactionItem, transactionDetails };
+}
+
 function displayTransactions(transactionsToRender = transactions) {
   const transactionItems = document.getElementById("transactionItems");
   transactionItems.innerHTML = ""; // Clear existing transactions
@@ -317,13 +375,10 @@ function displayTransactions(transactionsToRender = transactions) {
   const paginatedTransactions = transactionsToRender.slice(start, end);
 
   paginatedTransactions.forEach((transaction) => {
-    const transactionItem = document.createElement("div");
-    transactionItem.classList.add("transaction-item");
-    transactionItem.innerHTML = `
-      <span>${formatDate(transaction.transaction_date)}</span>
-      <span>${transaction.description}</span>
-    `;
+    const { transactionItem, transactionDetails } =
+      createTransactionItem(transaction);
     transactionItems.appendChild(transactionItem);
+    transactionItems.appendChild(transactionDetails);
   });
 
   updatePagination(transactionsToRender);
@@ -849,6 +904,34 @@ const viewTransactionHistoryHTML = `
   </div>
 `;
 
+// Toggle transaction details visibility
+function toggleTransactionDetails(element, transactionId) {
+  const detailsElement = document.getElementById(`details-${transactionId}`);
+  if (detailsElement) {
+    detailsElement.classList.toggle("active");
+    element.innerHTML = detailsElement.classList.contains("active")
+      ? "&#9652;"
+      : "&#9662;";
+  }
+}
+
+function loadTransactionDetails(transactionId, container) {
+  window.electronAPI.fetchTransactionDetails(transactionId).then((details) => {
+    container.innerHTML = `
+      <span>Client: ${details.client_name}</span>
+      ${details.accounts
+        .map(
+          (account) =>
+            `<span>${account.description}: $${account.amount.toFixed(
+              2,
+            )} ${account.type === "Debit" ? "(Debited)" : ""}</span>`,
+        )
+        .join("")}
+      <button class="remove-btn" onclick="removeTransaction(${transactionId})">Remove</button>
+    `;
+  });
+}
+
 // Function to load transaction history
 function loadTransactionHistory() {
   window.electronAPI.fetchTransactionHistory().then((transactions) => {
@@ -865,6 +948,14 @@ function loadTransactionHistory() {
       row.insertCell(2).innerText = transaction.transaction_date;
       row.insertCell(3).innerText = transaction.description;
       row.insertCell(4).innerText = transaction.amount;
+
+      const expandArrow = document.createElement("span");
+      expandArrow.classList.add("expand-arrow");
+      expandArrow.innerHTML = "&#x25BC;"; // Down arrow
+      expandArrow.addEventListener("click", () =>
+        toggleTransactionDetails(transaction.transaction_id, expandArrow),
+      );
+      row.appendChild(expandArrow);
     });
   });
 }
