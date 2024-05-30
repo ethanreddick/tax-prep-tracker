@@ -1168,7 +1168,6 @@ function showGenerateReport() {
 // Function to fetch account data
 function fetchAccountData() {
   return window.electronAPI.fetchAccounts().then((accounts) => {
-    console.log("Fetched accounts: ", accounts); // Log fetched accounts
     const assetAccounts = accounts.filter(
       (account) => account.account_class === "Asset",
     );
@@ -1178,10 +1177,20 @@ function fetchAccountData() {
     const equityAccounts = accounts.filter(
       (account) => account.account_class === "Equity",
     );
-    console.log("Asset accounts: ", assetAccounts); // Log asset accounts
-    console.log("Liability accounts: ", liabilityAccounts); // Log liability accounts
-    console.log("Equity accounts: ", equityAccounts); // Log equity accounts
-    return { assetAccounts, liabilityAccounts, equityAccounts };
+    const revenueAccounts = accounts.filter(
+      (account) => account.account_class === "Revenue",
+    );
+    const expenseAccounts = accounts.filter(
+      (account) => account.account_class === "Expense",
+    );
+
+    return {
+      assetAccounts,
+      liabilityAccounts,
+      equityAccounts,
+      revenueAccounts,
+      expenseAccounts,
+    };
   });
 }
 
@@ -1207,6 +1216,8 @@ function generateReport() {
   const reportType = document.getElementById("reportType").value;
   let reportPath = document.getElementById("reportPath").value;
 
+  console.log("Selected Report Type:", reportType);
+
   // Get the current date
   const currentDate = formatDate(new Date());
 
@@ -1225,12 +1236,21 @@ function generateReport() {
     reportPath += defaultFileNames[reportType]; // Append default file name
   }
 
-  if (reportType === "balanceSheet") {
+  console.log("Report Type: ", reportType); // Log report type
+  console.log("Report Path: ", reportPath); // Log report path
+
+  if (reportType === "balanceSheet" || reportType === "incomeStatement") {
     fetchAccountData().then((data) => {
       console.log("Fetched data for report: ", data); // Log fetched data
-      const { assetAccounts, liabilityAccounts, equityAccounts } = data;
+      const {
+        assetAccounts,
+        liabilityAccounts,
+        equityAccounts,
+        revenueAccounts,
+        expenseAccounts,
+      } = data;
 
-      // Calculate totals
+      // Calculate totals for balance sheet
       const totalAssets = assetAccounts.reduce(
         (sum, account) => sum + account.account_balance,
         0,
@@ -1244,66 +1264,37 @@ function generateReport() {
         0,
       );
 
+      // Calculate totals for income statement
+      const totalRevenue = revenueAccounts
+        ? revenueAccounts.reduce(
+            (sum, account) => sum + account.account_balance,
+            0,
+          )
+        : 0;
+      const totalExpenses = expenseAccounts
+        ? expenseAccounts.reduce(
+            (sum, account) => sum + account.account_balance,
+            0,
+          )
+        : 0;
+
       const reportData = {
+        reportType,
         assetAccounts,
         liabilityAccounts,
         equityAccounts,
         totalAssets,
         totalLiabilities,
         totalEquity,
-      };
-
-      // Save the balance sheet content to the specified path
-      window.electronAPI
-        .generatePdfReport(reportPath, reportData, reportType)
-        .then((message) => {
-          const messageElement = document.getElementById(
-            "generateReportMessage",
-          );
-          if (messageElement) {
-            messageElement.innerText = message;
-            messageElement.style.color = "darkgreen";
-          }
-        })
-        .catch((error) => {
-          const messageElement = document.getElementById(
-            "generateReportMessage",
-          );
-          if (messageElement) {
-            messageElement.innerText =
-              "Error generating report. Click here for details.";
-            messageElement.style.color = "red";
-            messageElement.onclick = () => alert(error.message);
-          }
-        });
-    });
-  } else if (reportType === "incomeStatement") {
-    fetchAccountData().then((data) => {
-      console.log("Fetched data for report: ", data); // Log fetched data
-      const { revenueAccounts, expenseAccounts } = data;
-
-      // Calculate totals
-      const totalRevenue = revenueAccounts.reduce(
-        (sum, account) => sum + account.account_balance,
-        0,
-      );
-      const totalExpenses = expenseAccounts.reduce(
-        (sum, account) => sum + account.account_balance,
-        0,
-      );
-      const netIncome = totalRevenue - totalExpenses;
-
-      const reportData = {
         revenueAccounts,
         expenseAccounts,
         totalRevenue,
         totalExpenses,
-        netIncome,
       };
 
-      // Save the income statement content to the specified path
+      // Save the balance sheet content to the specified path
       window.electronAPI
-        .generatePdfReport(reportPath, reportData, reportType)
+        .generatePdfReport(reportPath, reportData)
         .then((message) => {
           const messageElement = document.getElementById(
             "generateReportMessage",

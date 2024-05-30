@@ -389,29 +389,239 @@ ipcMain.handle("open-directory-dialog", async () => {
 
 ipcMain.handle(
   "generate-pdf-report",
-  async (event, { reportType, reportPath, content }) => {
+  async (event, { reportPath, content }) => {
     try {
       if (!content) {
         throw new Error("Content is undefined or empty.");
       }
 
       console.log("Generating PDF report...");
-      console.log("Report Type: ", reportType);
       console.log("Report Path: ", reportPath);
       console.log("Content: ", content);
+
+      const {
+        reportType,
+        assetAccounts,
+        liabilityAccounts,
+        equityAccounts,
+        revenueAccounts,
+        expenseAccounts,
+        totalAssets,
+        totalLiabilities,
+        totalEquity,
+        totalRevenue,
+        totalExpenses,
+      } = content;
 
       const doc = new PDFDocument();
       doc.pipe(fs.createWriteStream(reportPath));
 
+      // Title and date
+      let title = "";
       if (reportType === "balanceSheet") {
-        generateBalanceSheet(doc, content);
+        title = "Balance Sheet";
       } else if (reportType === "incomeStatement") {
-        generateIncomeStatement(doc, content);
-      } else {
-        throw new Error("Unknown report type.");
+        title = "Income Statement";
+      }
+      doc.fontSize(20).text(title, { align: "center" });
+      doc.moveDown(0.5);
+
+      // Add the current date in full form below the title
+      const currentDate = new Date().toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+      doc.fontSize(14).text(`${currentDate}`, { align: "center" });
+      doc.moveDown(2);
+
+      if (reportType === "balanceSheet") {
+        // Assets
+        doc
+          .fontSize(16)
+          .font("Helvetica-Bold")
+          .text("ASSETS", { align: "left", underline: true });
+        doc.moveDown(0.5);
+
+        assetAccounts.forEach((account) => {
+          doc
+            .fontSize(12)
+            .font("Helvetica")
+            .text(account.description, { continued: true });
+          doc
+            .fontSize(12)
+            .text(`$${account.account_balance.toFixed(2)}`, { align: "right" });
+          doc.moveDown(0.5);
+        });
+
+        doc.moveDown(0.5);
+        doc
+          .fontSize(16)
+          .font("Helvetica-Bold")
+          .moveTo(40, doc.y)
+          .lineTo(550, doc.y)
+          .stroke()
+          .moveDown(0.5);
+        doc.text(`TOTAL ASSETS`, { continued: true, underline: false });
+        doc.text(`$${totalAssets.toFixed(2)}`, { align: "right" });
+        doc.moveDown(2.5); // Increase space after total
+
+        // Liabilities
+        doc
+          .fontSize(16)
+          .font("Helvetica-Bold")
+          .text("LIABILITIES", { align: "left", underline: true });
+        doc.moveDown(0.5);
+
+        liabilityAccounts.forEach((account) => {
+          doc
+            .fontSize(12)
+            .font("Helvetica")
+            .text(account.description, { continued: true });
+          doc
+            .fontSize(12)
+            .text(`$${account.account_balance.toFixed(2)}`, { align: "right" });
+          doc.moveDown(0.5);
+        });
+
+        doc.moveDown(0.5);
+        doc
+          .fontSize(12)
+          .font("Helvetica-Bold")
+          .moveTo(40, doc.y)
+          .lineTo(550, doc.y)
+          .stroke()
+          .moveDown(0.5);
+        doc.text(`TOTAL LIABILITIES`, { continued: true, underline: false });
+        doc.text(`$${totalLiabilities.toFixed(2)}`, { align: "right" });
+        doc.moveDown(2.5); // Increase space after total
+
+        // Owner's Equity
+        doc
+          .fontSize(16)
+          .font("Helvetica-Bold")
+          .text("OWNER'S EQUITY", { align: "left", underline: true });
+        doc.moveDown(0.5);
+
+        equityAccounts.forEach((account) => {
+          doc
+            .fontSize(12)
+            .font("Helvetica")
+            .text(account.description, { continued: true });
+          doc
+            .fontSize(12)
+            .text(`$${account.account_balance.toFixed(2)}`, { align: "right" });
+          doc.moveDown(0.5);
+        });
+
+        doc.moveDown(0.5);
+        doc
+          .fontSize(12)
+          .font("Helvetica-Bold")
+          .moveTo(40, doc.y)
+          .lineTo(550, doc.y)
+          .stroke()
+          .moveDown(0.5);
+        doc.text(`Total Owner's Equity`, { continued: true });
+        doc.text(`$${totalEquity.toFixed(2)}`, { align: "right" });
+        doc.moveDown(2.5); // Increase space after total
+
+        // Total Liabilities and Owner's Equity
+        doc.moveDown(1.5);
+        doc
+          .fontSize(16)
+          .font("Helvetica-Bold")
+          .text("TOTAL LIABILITIES & OWNER'S EQUITY", {
+            align: "left",
+            underline: false,
+            continued: true,
+          });
+        doc
+          .fontSize(16)
+          .font("Helvetica-Bold")
+          .text(`$${(totalLiabilities + totalEquity).toFixed(2)}`, {
+            align: "right",
+          });
+      } else if (reportType === "incomeStatement") {
+        // Revenue
+        doc
+          .fontSize(16)
+          .font("Helvetica-Bold")
+          .text("REVENUE", { align: "left", underline: true });
+        doc.moveDown(0.5);
+
+        revenueAccounts.forEach((account) => {
+          doc
+            .fontSize(12)
+            .font("Helvetica")
+            .text(account.description, { continued: true });
+          doc
+            .fontSize(12)
+            .text(`$${account.account_balance.toFixed(2)}`, { align: "right" });
+          doc.moveDown(0.5);
+        });
+
+        doc.moveDown(0.5);
+        doc
+          .fontSize(12)
+          .font("Helvetica-Bold")
+          .moveTo(40, doc.y)
+          .lineTo(550, doc.y)
+          .stroke()
+          .moveDown(0.5);
+        doc.text(`TOTAL REVENUE`, { continued: true, underline: false });
+        doc.text(`$${totalRevenue.toFixed(2)}`, { align: "right" });
+        doc.moveDown(2.5); // Increase space after total
+
+        // Expenses
+        doc
+          .fontSize(16)
+          .font("Helvetica-Bold")
+          .text("EXPENSES", { align: "left", underline: true });
+        doc.moveDown(0.5);
+
+        expenseAccounts.forEach((account) => {
+          doc
+            .fontSize(12)
+            .font("Helvetica")
+            .text(account.description, { continued: true });
+          doc
+            .fontSize(12)
+            .text(`$${account.account_balance.toFixed(2)}`, { align: "right" });
+          doc.moveDown(0.5);
+        });
+
+        doc.moveDown(0.5);
+        doc
+          .fontSize(12)
+          .font("Helvetica-Bold")
+          .moveTo(40, doc.y)
+          .lineTo(550, doc.y)
+          .stroke()
+          .moveDown(0.5);
+        doc.text(`TOTAL EXPENSES`, { continued: true, underline: false });
+        doc.text(`$${totalExpenses.toFixed(2)}`, { align: "right" });
+        doc.moveDown(2.5); // Increase space after total
+
+        // Net Income
+        const netIncome = totalRevenue - totalExpenses;
+        doc.moveDown(1.5);
+        doc.fontSize(16).font("Helvetica-Bold").text("NET INCOME", {
+          align: "left",
+          underline: false,
+          continued: true,
+        });
+        doc
+          .fontSize(16)
+          .font("Helvetica-Bold")
+          .text(`$${netIncome.toFixed(2)}`, {
+            align: "right",
+          });
       }
 
       doc.end();
+
       return "Report generated successfully.";
     } catch (error) {
       console.error("Error generating PDF report: ", error);
@@ -419,236 +629,6 @@ ipcMain.handle(
     }
   },
 );
-
-function generateBalanceSheet(doc, content) {
-  const {
-    assetAccounts,
-    liabilityAccounts,
-    equityAccounts,
-    totalAssets,
-    totalLiabilities,
-    totalEquity,
-  } = content;
-
-  // Title and date
-  doc.fontSize(20).text("Balance Sheet", { align: "center" });
-  doc.moveDown(0.5);
-
-  // Add the current date in full form below the title
-  const currentDate = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-  doc.fontSize(14).text(`${currentDate}`, { align: "center" });
-  doc.moveDown(2);
-
-  // Assets
-  doc
-    .fontSize(16)
-    .font("Helvetica-Bold")
-    .text("ASSETS", { align: "left", underline: true });
-  doc.moveDown(0.5);
-
-  assetAccounts.forEach((account) => {
-    doc
-      .fontSize(12)
-      .font("Helvetica")
-      .text(account.description, { continued: true });
-    doc
-      .fontSize(12)
-      .text(`$${account.account_balance.toFixed(2)}`, { align: "right" });
-    doc.moveDown(0.5);
-  });
-
-  doc.moveDown(0.5);
-  doc
-    .fontSize(12)
-    .font("Helvetica-Bold")
-    .moveTo(40, doc.y)
-    .lineTo(550, doc.y)
-    .stroke()
-    .moveDown(0.5);
-  doc.text(`TOTAL ASSETS`, { continued: true, underline: false });
-  doc.text(`$${totalAssets.toFixed(2)}`, { align: "right" });
-  doc.moveDown(2.5); // Increase space after total
-
-  // Liabilities
-  doc
-    .fontSize(16)
-    .font("Helvetica-Bold")
-    .text("LIABILITIES", { align: "left", underline: true });
-  doc.moveDown(0.5);
-
-  liabilityAccounts.forEach((account) => {
-    doc
-      .fontSize(12)
-      .font("Helvetica")
-      .text(account.description, { continued: true });
-    doc
-      .fontSize(12)
-      .text(`$${account.account_balance.toFixed(2)}`, { align: "right" });
-    doc.moveDown(0.5);
-  });
-
-  doc.moveDown(0.5);
-  doc
-    .fontSize(12)
-    .font("Helvetica-Bold")
-    .moveTo(40, doc.y)
-    .lineTo(550, doc.y)
-    .stroke()
-    .moveDown(0.5);
-  doc.text(`TOTAL LIABILITIES`, { continued: true, underline: false });
-  doc.text(`$${totalLiabilities.toFixed(2)}`, { align: "right" });
-  doc.moveDown(2.5); // Increase space after total
-
-  // Owner's Equity
-  doc
-    .fontSize(16)
-    .font("Helvetica-Bold")
-    .text("OWNER'S EQUITY", { align: "left", underline: true });
-  doc.moveDown(0.5);
-
-  equityAccounts.forEach((account) => {
-    doc
-      .fontSize(12)
-      .font("Helvetica")
-      .text(account.description, { continued: true });
-    doc
-      .fontSize(12)
-      .text(`$${account.account_balance.toFixed(2)}`, { align: "right" });
-    doc.moveDown(0.5);
-  });
-
-  doc.moveDown(0.5);
-  doc
-    .fontSize(12)
-    .font("Helvetica-Bold")
-    .moveTo(40, doc.y)
-    .lineTo(550, doc.y)
-    .stroke()
-    .moveDown(0.5);
-  doc.text(`TOTAL OWNER'S EQUITY`, { continued: true });
-  doc.text(`$${totalEquity.toFixed(2)}`, { align: "right" });
-  doc.moveDown(2.5); // Increase space after total
-
-  // Total Liabilities and Owner's Equity
-  doc.moveDown(1.5);
-  doc
-    .fontSize(16)
-    .font("Helvetica-Bold")
-    .text("TOTAL LIABILITIES & OWNER'S EQUITY", {
-      align: "left",
-      underline: false,
-      continued: true,
-    });
-  doc
-    .fontSize(16)
-    .font("Helvetica-Bold")
-    .text(`$${(totalLiabilities + totalEquity).toFixed(2)}`, {
-      align: "right",
-    });
-}
-
-function generateIncomeStatement(doc, content) {
-  const {
-    revenueAccounts,
-    expenseAccounts,
-    totalRevenue,
-    totalExpenses,
-    netIncome,
-  } = content;
-
-  // Title and date
-  doc.fontSize(20).text("Income Statement", { align: "center" });
-  doc.moveDown(0.5);
-
-  // Add the current date in full form below the title
-  const currentDate = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-  doc.fontSize(14).text(`${currentDate}`, { align: "center" });
-  doc.moveDown(2);
-
-  // Revenue
-  doc
-    .fontSize(16)
-    .font("Helvetica-Bold")
-    .text("REVENUE", { align: "left", underline: true });
-  doc.moveDown(0.5);
-
-  revenueAccounts.forEach((account) => {
-    doc
-      .fontSize(12)
-      .font("Helvetica")
-      .text(account.description, { continued: true });
-    doc
-      .fontSize(12)
-      .text(`$${account.account_balance.toFixed(2)}`, { align: "right" });
-    doc.moveDown(0.5);
-  });
-
-  doc.moveDown(0.5);
-  doc
-    .fontSize(16)
-    .font("Helvetica-Bold")
-    .moveTo(40, doc.y)
-    .lineTo(550, doc.y)
-    .stroke()
-    .moveDown(0.5);
-  doc.text(`TOTAL REVENUE`, { continued: true, underline: false });
-  doc.text(`$${totalRevenue.toFixed(2)}`, { align: "right" });
-  doc.moveDown(2.5); // Increase space after total
-
-  // Expenses
-  doc
-    .fontSize(16)
-    .font("Helvetica-Bold")
-    .text("EXPENSES", { align: "left", underline: true });
-  doc.moveDown(0.5);
-
-  expenseAccounts.forEach((account) => {
-    doc
-      .fontSize(12)
-      .font("Helvetica")
-      .text(account.description, { continued: true });
-    doc
-      .fontSize(12)
-      .text(`$${account.account_balance.toFixed(2)}`, { align: "right" });
-    doc.moveDown(0.5);
-  });
-
-  doc.moveDown(0.5);
-  doc
-    .fontSize(12)
-    .font("Helvetica-Bold")
-    .moveTo(40, doc.y)
-    .lineTo(550, doc.y)
-    .stroke()
-    .moveDown(0.5);
-  doc.text(`TOTAL EXPENSES`, { continued: true, underline: false });
-  doc.text(`$${totalExpenses.toFixed(2)}`, { align: "right" });
-  doc.moveDown(2.5); // Increase space after total
-
-  // Net Income
-  doc.moveDown(1.5);
-  doc.fontSize(16).font("Helvetica-Bold").text("NET INCOME", {
-    align: "left",
-    underline: false,
-    continued: true,
-  });
-  doc
-    .fontSize(16)
-    .font("Helvetica-Bold")
-    .text(`$${netIncome.toFixed(2)}`, {
-      align: "right",
-    });
-}
 
 ipcMain.handle("delete-transaction", async (event, transactionId) => {
   try {
