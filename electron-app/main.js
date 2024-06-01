@@ -406,7 +406,7 @@ ipcMain.handle(
         equityAccounts,
         revenueAccounts,
         expenseAccounts,
-        trialBalanceData,
+        trialBalanceData = [],
         totalAssets,
         totalLiabilities,
         totalEquity,
@@ -655,6 +655,7 @@ ipcMain.handle(
         let totalDebits = 0;
         let totalCredits = 0;
 
+        // Iterate through trialBalanceData
         trialBalanceData.forEach(
           ({ description, total_debit, total_credit }) => {
             totalDebits += total_debit;
@@ -823,21 +824,57 @@ async function fetchTrialBalanceData() {
       GROUP BY
         a.account_id, a.description, a.account_class
     `;
-
     connection.query(query, (error, results) => {
       if (error) {
         reject(error);
       } else {
-        resolve(
-          results.map((result) => {
-            return {
-              description: result.description,
-              total_debit: parseFloat(result.total_debit) || 0,
-              total_credit: parseFloat(result.total_credit) || 0,
-            };
-          }),
-        );
+        const trialBalanceData = results
+          .filter(
+            (result) => result.total_credit !== 0 || result.total_debit !== 0,
+          )
+          .map((result) => ({
+            description: result.description,
+            total_debit: parseFloat(result.total_debit.toFixed(2)),
+            total_credit: parseFloat(result.total_credit.toFixed(2)),
+          }));
+        resolve(trialBalanceData);
       }
     });
   });
 }
+
+ipcMain.handle("fetch-trial-balance-data", async (event) => {
+  try {
+    const query = `
+      SELECT
+        a.account_id,
+        a.description,
+        a.account_class,
+        SUM(CASE WHEN tl.amount < 0 THEN -tl.amount ELSE 0 END) AS total_debit,
+        SUM(CASE WHEN tl.amount > 0 THEN tl.amount ELSE 0 END) AS total_credit
+      FROM
+        accounts a
+        LEFT JOIN transaction_lines tl ON a.account_id = tl.account_id
+        LEFT JOIN transactions t ON tl.transaction_id = t.transaction_id
+      WHERE
+        YEAR(t.transaction_date) = YEAR(CURDATE())
+      GROUP BY
+        a.account_id, a.description, a.account_class
+    `;
+
+    const results = await new Promise((resolve, reject) => {
+      connection.query(query, (error, results) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(results);
+        }
+      });
+    });
+
+    return results;
+  } catch (error) {
+    console.error("Error fetching trial balance data:", error);
+    throw error;
+  }
+});

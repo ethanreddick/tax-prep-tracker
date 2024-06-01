@@ -1262,72 +1262,37 @@ function generateReport() {
   const reportType = document.getElementById("reportType").value;
   let reportPath = document.getElementById("reportPath").value;
 
-  // Get the current date
   const currentDate = formatDate(new Date());
 
-  // Default file names based on report type
   const defaultFileNames = {
     balanceSheet: `BalanceSheet${currentDate}.pdf`,
     incomeStatement: `IncomeStatement${currentDate}.pdf`,
     trialBalance: `TrialBalance${currentDate}.pdf`,
   };
 
-  // Check if the provided path is a directory
   if (!reportPath.toLowerCase().endsWith(".pdf")) {
     if (!reportPath.endsWith("/")) {
       reportPath += "/";
     }
-    reportPath += defaultFileNames[reportType]; // Append default file name
+    reportPath += defaultFileNames[reportType];
   }
 
-  fetchAccountData().then((data) => {
-    console.log("Fetched data for report: ", data); // Log fetched data
-    const {
-      assetAccounts,
-      liabilityAccounts,
-      equityAccounts,
-      revenueAccounts,
-      expenseAccounts,
-      trialBalanceData,
-    } = data;
+  let fetchDataPromise;
+  if (reportType === "balanceSheet" || reportType === "incomeStatement") {
+    fetchDataPromise = fetchAccountData();
+  } else if (reportType === "trialBalance") {
+    fetchDataPromise = window.electronAPI.fetchTrialBalanceData();
+  }
 
-    // Calculate totals
-    const totalAssets = assetAccounts.reduce(
-      (sum, account) => sum + account.account_balance,
-      0,
-    );
-    const totalLiabilities = liabilityAccounts.reduce(
-      (sum, account) => sum + account.account_balance,
-      0,
-    );
-    const totalEquity = equityAccounts.reduce(
-      (sum, account) => sum + account.account_balance,
-      0,
-    );
-    const totalRevenue = revenueAccounts.reduce(
-      (sum, account) => sum + account.account_balance,
-      0,
-    );
-    const totalExpenses = expenseAccounts.reduce(
-      (sum, account) => sum + account.account_balance,
-      0,
-    );
+  fetchDataPromise.then((data) => {
+    console.log("Fetched data for report: ", data);
 
     const reportData = {
-      assetAccounts,
-      liabilityAccounts,
-      equityAccounts,
-      revenueAccounts,
-      expenseAccounts,
-      totalAssets,
-      totalLiabilities,
-      totalEquity,
-      totalRevenue,
-      totalExpenses,
-      trialBalanceData,
+      ...data,
+      reportType,
+      trialBalanceData: data, // Add this line to ensure trialBalanceData is correctly passed
     };
 
-    // Save the report content to the specified path
     window.electronAPI
       .generatePdfReport(reportPath, reportData, reportType)
       .then((message) => {
