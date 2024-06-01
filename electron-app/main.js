@@ -417,6 +417,11 @@ ipcMain.handle(
       const doc = new PDFDocument();
       doc.pipe(fs.createWriteStream(reportPath));
 
+      // Helper function to format numbers with commas
+      const formatNumber = (num) => {
+        return num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+      };
+
       // Title and date
       let title = "";
       if (reportType === "balanceSheet") {
@@ -455,7 +460,9 @@ ipcMain.handle(
             .text(account.description, { continued: true });
           doc
             .fontSize(12)
-            .text(`$${account.account_balance.toFixed(2)}`, { align: "right" });
+            .text(`$${formatNumber(account.account_balance)}`, {
+              align: "right",
+            });
           doc.moveDown(0.5);
         });
 
@@ -468,7 +475,7 @@ ipcMain.handle(
           .stroke()
           .moveDown(0.5);
         doc.text(`TOTAL ASSETS`, { continued: true, underline: false });
-        doc.text(`$${totalAssets.toFixed(2)}`, { align: "right" });
+        doc.text(`$${formatNumber(totalAssets)}`, { align: "right" });
         doc.moveDown(2.5); // Increase space after total
 
         doc
@@ -484,7 +491,9 @@ ipcMain.handle(
             .text(account.description, { continued: true });
           doc
             .fontSize(12)
-            .text(`$${account.account_balance.toFixed(2)}`, { align: "right" });
+            .text(`$${formatNumber(account.account_balance)}`, {
+              align: "right",
+            });
           doc.moveDown(0.5);
         });
 
@@ -497,7 +506,7 @@ ipcMain.handle(
           .stroke()
           .moveDown(0.5);
         doc.text(`TOTAL LIABILITIES`, { continued: true, underline: false });
-        doc.text(`$${totalLiabilities.toFixed(2)}`, { align: "right" });
+        doc.text(`$${formatNumber(totalLiabilities)}`, { align: "right" });
         doc.moveDown(2.5); // Increase space after total
 
         doc
@@ -513,7 +522,9 @@ ipcMain.handle(
             .text(account.description, { continued: true });
           doc
             .fontSize(12)
-            .text(`$${account.account_balance.toFixed(2)}`, { align: "right" });
+            .text(`$${formatNumber(account.account_balance)}`, {
+              align: "right",
+            });
           doc.moveDown(0.5);
         });
 
@@ -526,7 +537,7 @@ ipcMain.handle(
           .stroke()
           .moveDown(0.5);
         doc.text(`Total Owner's Equity`, { continued: true });
-        doc.text(`$${totalEquity.toFixed(2)}`, { align: "right" });
+        doc.text(`$${formatNumber(totalEquity)}`, { align: "right" });
         doc.moveDown(2.5); // Increase space after total
 
         doc.moveDown(1.5);
@@ -541,7 +552,7 @@ ipcMain.handle(
         doc
           .fontSize(16)
           .font("Helvetica-Bold")
-          .text(`$${(totalLiabilities + totalEquity).toFixed(2)}`, {
+          .text(`$${formatNumber(totalLiabilities + totalEquity)}`, {
             align: "right",
           });
       } else if (reportType === "incomeStatement") {
@@ -560,7 +571,9 @@ ipcMain.handle(
             .text(account.description, { continued: true });
           doc
             .fontSize(12)
-            .text(`$${account.account_balance.toFixed(2)}`, { align: "right" });
+            .text(`$${formatNumber(account.account_balance)}`, {
+              align: "right",
+            });
           doc.moveDown(0.5);
         });
 
@@ -573,7 +586,7 @@ ipcMain.handle(
           .stroke()
           .moveDown(0.5);
         doc.text(`TOTAL REVENUE`, { continued: true, underline: false });
-        doc.text(`$${totalRevenue.toFixed(2)}`, { align: "right" });
+        doc.text(`$${formatNumber(totalRevenue)}`, { align: "right" });
         doc.moveDown(2.5); // Increase space after total
 
         doc
@@ -589,7 +602,9 @@ ipcMain.handle(
             .text(account.description, { continued: true });
           doc
             .fontSize(12)
-            .text(`$${account.account_balance.toFixed(2)}`, { align: "right" });
+            .text(`$${formatNumber(account.account_balance)}`, {
+              align: "right",
+            });
           doc.moveDown(0.5);
         });
 
@@ -602,7 +617,7 @@ ipcMain.handle(
           .stroke()
           .moveDown(0.5);
         doc.text(`TOTAL EXPENSES`, { continued: true, underline: false });
-        doc.text(`$${totalExpenses.toFixed(2)}`, { align: "right" });
+        doc.text(`$${formatNumber(totalExpenses)}`, { align: "right" });
         doc.moveDown(2.5); // Increase space after total
 
         const netIncome = totalRevenue - totalExpenses;
@@ -615,7 +630,7 @@ ipcMain.handle(
         doc
           .fontSize(16)
           .font("Helvetica-Bold")
-          .text(`$${netIncome.toFixed(2)}`, {
+          .text(`$${formatNumber(netIncome)}`, {
             align: "right",
           });
       } else if (reportType === "trialBalance") {
@@ -681,7 +696,7 @@ ipcMain.handle(
                 doc
                   .fontSize(12)
                   .text(
-                    `$${debit.toFixed(2)}`,
+                    `$${formatNumber(debit)}`,
                     startX + columnWidth,
                     currentY,
                     {
@@ -695,7 +710,7 @@ ipcMain.handle(
                 doc
                   .fontSize(12)
                   .text(
-                    `$${credit.toFixed(2)}`,
+                    `$${formatNumber(credit)}`,
                     startX + 2 * columnWidth,
                     currentY,
                     {
@@ -721,7 +736,7 @@ ipcMain.handle(
         doc.text(`Totals`, startX, currentY + 5, { width: columnWidth });
 
         doc.text(
-          `$${totalDebits.toFixed(2)}`,
+          `$${formatNumber(totalDebits)}`,
           startX + columnWidth,
           currentY + 5,
           {
@@ -731,7 +746,7 @@ ipcMain.handle(
         );
 
         doc.text(
-          `$${totalCredits.toFixed(2)}`,
+          `$${formatNumber(totalCredits)}`,
           startX + 2 * columnWidth,
           currentY + 5,
           {
