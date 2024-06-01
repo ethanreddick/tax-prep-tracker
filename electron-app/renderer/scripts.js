@@ -1184,12 +1184,58 @@ function fetchAccountData() {
       (account) => account.account_class === "Expense",
     );
 
+    const totalAssets = assetAccounts.reduce(
+      (sum, account) => sum + account.account_balance,
+      0,
+    );
+    const totalLiabilities = liabilityAccounts.reduce(
+      (sum, account) => sum + account.account_balance,
+      0,
+    );
+    const totalEquity = equityAccounts.reduce(
+      (sum, account) => sum + account.account_balance,
+      0,
+    );
+    const totalRevenue = revenueAccounts.reduce(
+      (sum, account) => sum + account.account_balance,
+      0,
+    );
+    const totalExpenses = expenseAccounts.reduce(
+      (sum, account) => sum + account.account_balance,
+      0,
+    );
+
+    // Create trial balance data
+    const trialBalanceData = accounts.map((account) => {
+      const total_debit =
+        account.account_class === "Expense" || account.account_class === "Asset"
+          ? account.account_balance
+          : 0;
+      const total_credit =
+        account.account_class === "Revenue" ||
+        account.account_class === "Liability" ||
+        account.account_class === "Equity"
+          ? account.account_balance
+          : 0;
+      return {
+        description: account.description,
+        total_debit,
+        total_credit,
+      };
+    });
+
     return {
       assetAccounts,
       liabilityAccounts,
       equityAccounts,
       revenueAccounts,
       expenseAccounts,
+      totalAssets,
+      totalLiabilities,
+      totalEquity,
+      totalRevenue,
+      totalExpenses,
+      trialBalanceData,
     };
   });
 }
@@ -1216,8 +1262,6 @@ function generateReport() {
   const reportType = document.getElementById("reportType").value;
   let reportPath = document.getElementById("reportPath").value;
 
-  console.log("Selected Report Type:", reportType);
-
   // Get the current date
   const currentDate = formatDate(new Date());
 
@@ -1236,87 +1280,73 @@ function generateReport() {
     reportPath += defaultFileNames[reportType]; // Append default file name
   }
 
-  console.log("Report Type: ", reportType); // Log report type
-  console.log("Report Path: ", reportPath); // Log report path
+  fetchAccountData().then((data) => {
+    console.log("Fetched data for report: ", data); // Log fetched data
+    const {
+      assetAccounts,
+      liabilityAccounts,
+      equityAccounts,
+      revenueAccounts,
+      expenseAccounts,
+      trialBalanceData,
+    } = data;
 
-  if (reportType === "balanceSheet" || reportType === "incomeStatement") {
-    fetchAccountData().then((data) => {
-      console.log("Fetched data for report: ", data); // Log fetched data
-      const {
-        assetAccounts,
-        liabilityAccounts,
-        equityAccounts,
-        revenueAccounts,
-        expenseAccounts,
-      } = data;
+    // Calculate totals
+    const totalAssets = assetAccounts.reduce(
+      (sum, account) => sum + account.account_balance,
+      0,
+    );
+    const totalLiabilities = liabilityAccounts.reduce(
+      (sum, account) => sum + account.account_balance,
+      0,
+    );
+    const totalEquity = equityAccounts.reduce(
+      (sum, account) => sum + account.account_balance,
+      0,
+    );
+    const totalRevenue = revenueAccounts.reduce(
+      (sum, account) => sum + account.account_balance,
+      0,
+    );
+    const totalExpenses = expenseAccounts.reduce(
+      (sum, account) => sum + account.account_balance,
+      0,
+    );
 
-      // Calculate totals for balance sheet
-      const totalAssets = assetAccounts.reduce(
-        (sum, account) => sum + account.account_balance,
-        0,
-      );
-      const totalLiabilities = liabilityAccounts.reduce(
-        (sum, account) => sum + account.account_balance,
-        0,
-      );
-      const totalEquity = equityAccounts.reduce(
-        (sum, account) => sum + account.account_balance,
-        0,
-      );
+    const reportData = {
+      assetAccounts,
+      liabilityAccounts,
+      equityAccounts,
+      revenueAccounts,
+      expenseAccounts,
+      totalAssets,
+      totalLiabilities,
+      totalEquity,
+      totalRevenue,
+      totalExpenses,
+      trialBalanceData,
+    };
 
-      // Calculate totals for income statement
-      const totalRevenue = revenueAccounts
-        ? revenueAccounts.reduce(
-            (sum, account) => sum + account.account_balance,
-            0,
-          )
-        : 0;
-      const totalExpenses = expenseAccounts
-        ? expenseAccounts.reduce(
-            (sum, account) => sum + account.account_balance,
-            0,
-          )
-        : 0;
-
-      const reportData = {
-        reportType,
-        assetAccounts,
-        liabilityAccounts,
-        equityAccounts,
-        totalAssets,
-        totalLiabilities,
-        totalEquity,
-        revenueAccounts,
-        expenseAccounts,
-        totalRevenue,
-        totalExpenses,
-      };
-
-      // Save the balance sheet content to the specified path
-      window.electronAPI
-        .generatePdfReport(reportPath, reportData)
-        .then((message) => {
-          const messageElement = document.getElementById(
-            "generateReportMessage",
-          );
-          if (messageElement) {
-            messageElement.innerText = message;
-            messageElement.style.color = "darkgreen";
-          }
-        })
-        .catch((error) => {
-          const messageElement = document.getElementById(
-            "generateReportMessage",
-          );
-          if (messageElement) {
-            messageElement.innerText =
-              "Error generating report. Click here for details.";
-            messageElement.style.color = "red";
-            messageElement.onclick = () => alert(error.message);
-          }
-        });
-    });
-  }
+    // Save the report content to the specified path
+    window.electronAPI
+      .generatePdfReport(reportPath, reportData, reportType)
+      .then((message) => {
+        const messageElement = document.getElementById("generateReportMessage");
+        if (messageElement) {
+          messageElement.innerText = message;
+          messageElement.style.color = "darkgreen";
+        }
+      })
+      .catch((error) => {
+        const messageElement = document.getElementById("generateReportMessage");
+        if (messageElement) {
+          messageElement.innerText =
+            "Error generating report. Click here for details.";
+          messageElement.style.color = "red";
+          messageElement.onclick = () => alert(error.message);
+        }
+      });
+  });
 }
 
 // Function to open directory dialog and select a path

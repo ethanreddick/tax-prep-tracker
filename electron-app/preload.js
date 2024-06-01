@@ -27,4 +27,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
     }),
   deleteTransaction: (transactionId) =>
     ipcRenderer.invoke("delete-transaction", transactionId),
+  fetchTrialBalanceData: () => ipcRenderer.invoke("fetch-trial-balance-data"),
 });

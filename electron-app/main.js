@@ -389,23 +389,24 @@ ipcMain.handle("open-directory-dialog", async () => {
 
 ipcMain.handle(
   "generate-pdf-report",
-  async (event, { reportPath, content }) => {
+  async (event, { reportPath, content, reportType }) => {
     try {
       if (!content) {
         throw new Error("Content is undefined or empty.");
       }
 
       console.log("Generating PDF report...");
-      console.log("Report Path: ", reportPath);
-      console.log("Content: ", content);
+      console.log("Report Path:", reportPath);
+      console.log("Report Type:", reportType);
+      console.log("Content:", content);
 
       const {
-        reportType,
         assetAccounts,
         liabilityAccounts,
         equityAccounts,
         revenueAccounts,
         expenseAccounts,
+        trialBalanceData,
         totalAssets,
         totalLiabilities,
         totalEquity,
@@ -422,6 +423,8 @@ ipcMain.handle(
         title = "Balance Sheet";
       } else if (reportType === "incomeStatement") {
         title = "Income Statement";
+      } else if (reportType === "trialBalance") {
+        title = "Trial Balance";
       }
       doc.fontSize(20).text(title, { align: "center" });
       doc.moveDown(0.5);
@@ -437,7 +440,8 @@ ipcMain.handle(
       doc.moveDown(2);
 
       if (reportType === "balanceSheet") {
-        // Assets
+        // Balance Sheet report generation code...
+
         doc
           .fontSize(16)
           .font("Helvetica-Bold")
@@ -467,7 +471,6 @@ ipcMain.handle(
         doc.text(`$${totalAssets.toFixed(2)}`, { align: "right" });
         doc.moveDown(2.5); // Increase space after total
 
-        // Liabilities
         doc
           .fontSize(16)
           .font("Helvetica-Bold")
@@ -497,7 +500,6 @@ ipcMain.handle(
         doc.text(`$${totalLiabilities.toFixed(2)}`, { align: "right" });
         doc.moveDown(2.5); // Increase space after total
 
-        // Owner's Equity
         doc
           .fontSize(16)
           .font("Helvetica-Bold")
@@ -527,7 +529,6 @@ ipcMain.handle(
         doc.text(`$${totalEquity.toFixed(2)}`, { align: "right" });
         doc.moveDown(2.5); // Increase space after total
 
-        // Total Liabilities and Owner's Equity
         doc.moveDown(1.5);
         doc
           .fontSize(16)
@@ -544,7 +545,8 @@ ipcMain.handle(
             align: "right",
           });
       } else if (reportType === "incomeStatement") {
-        // Revenue
+        // Income Statement report generation code...
+
         doc
           .fontSize(16)
           .font("Helvetica-Bold")
@@ -574,7 +576,6 @@ ipcMain.handle(
         doc.text(`$${totalRevenue.toFixed(2)}`, { align: "right" });
         doc.moveDown(2.5); // Increase space after total
 
-        // Expenses
         doc
           .fontSize(16)
           .font("Helvetica-Bold")
@@ -604,7 +605,6 @@ ipcMain.handle(
         doc.text(`$${totalExpenses.toFixed(2)}`, { align: "right" });
         doc.moveDown(2.5); // Increase space after total
 
-        // Net Income
         const netIncome = totalRevenue - totalExpenses;
         doc.moveDown(1.5);
         doc.fontSize(16).font("Helvetica-Bold").text("NET INCOME", {
@@ -618,6 +618,110 @@ ipcMain.handle(
           .text(`$${netIncome.toFixed(2)}`, {
             align: "right",
           });
+      } else if (reportType === "trialBalance") {
+        // Trial Balance
+
+        // Headers
+        const columnWidth = (doc.page.width - 80) / 3;
+        let startX = 40;
+        let currentY = doc.y;
+
+        doc
+          .fontSize(16)
+          .font("Helvetica-Bold")
+          .text("Account", startX, currentY, { width: columnWidth });
+        startX = 105;
+        doc
+          .fontSize(16)
+          .font("Helvetica-Bold")
+          .text("Debit", startX + columnWidth, currentY, {
+            width: columnWidth,
+            align: "center",
+            underline: true,
+          });
+        doc
+          .fontSize(16)
+          .font("Helvetica-Bold")
+          .text("Credit", startX + 2 * columnWidth, currentY, {
+            width: columnWidth,
+            align: "center",
+            underline: true,
+          });
+        startX = 40;
+        doc.moveDown(1);
+
+        currentY = doc.y;
+
+        let totalDebits = 0;
+        let totalCredits = 0;
+
+        trialBalanceData.forEach(
+          ({ description, total_debit, total_credit }) => {
+            totalDebits += total_debit;
+            totalCredits += total_credit;
+
+            doc
+              .fontSize(12)
+              .font("Helvetica")
+              .text(description, startX, currentY, { width: columnWidth });
+
+            doc
+              .fontSize(12)
+              .text(
+                `$${total_debit.toFixed(2)}`,
+                startX + columnWidth,
+                currentY,
+                {
+                  width: columnWidth,
+                  align: "right",
+                },
+              );
+
+            doc
+              .fontSize(12)
+              .text(
+                `$${total_credit.toFixed(2)}`,
+                startX + 2 * columnWidth,
+                currentY,
+                {
+                  width: columnWidth,
+                  align: "right",
+                },
+              );
+
+            currentY += 20;
+          },
+        );
+
+        doc.moveDown(0.5);
+        doc
+          .fontSize(12)
+          .font("Helvetica-Bold")
+          .moveTo(startX, currentY)
+          .lineTo(startX + columnWidth * 3, currentY)
+          .stroke()
+          .moveDown(0.5);
+        doc.text(`Totals`, startX, currentY + 5, { width: columnWidth });
+
+        doc.text(
+          `$${totalDebits.toFixed(2)}`,
+          startX + columnWidth,
+          currentY + 5,
+          {
+            width: columnWidth,
+            align: "right",
+          },
+        );
+
+        doc.text(
+          `$${totalCredits.toFixed(2)}`,
+          startX + 2 * columnWidth,
+          currentY + 5,
+          {
+            width: columnWidth,
+            align: "right",
+          },
+        );
       }
 
       doc.end();
@@ -700,3 +804,40 @@ ipcMain.handle("delete-transaction", async (event, transactionId) => {
     return { success: false, error: error.message };
   }
 });
+
+async function fetchTrialBalanceData() {
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT
+        a.account_id,
+        a.description,
+        a.account_class,
+        SUM(CASE WHEN tl.amount > 0 THEN tl.amount ELSE 0 END) AS total_credit,
+        SUM(CASE WHEN tl.amount < 0 THEN -tl.amount ELSE 0 END) AS total_debit
+      FROM
+        accounts a
+        LEFT JOIN transaction_lines tl ON a.account_id = tl.account_id
+        LEFT JOIN transactions t ON tl.transaction_id = t.transaction_id
+      WHERE
+        YEAR(t.transaction_date) = YEAR(CURDATE())
+      GROUP BY
+        a.account_id, a.description, a.account_class
+    `;
+
+    connection.query(query, (error, results) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(
+          results.map((result) => {
+            return {
+              description: result.description,
+              total_debit: parseFloat(result.total_debit) || 0,
+              total_credit: parseFloat(result.total_credit) || 0,
+            };
+          }),
+        );
+      }
+    });
+  });
+}
