@@ -458,11 +458,9 @@ ipcMain.handle(
             .fontSize(12)
             .font("Helvetica")
             .text(account.description, { continued: true });
-          doc
-            .fontSize(12)
-            .text(`$${formatNumber(account.account_balance)}`, {
-              align: "right",
-            });
+          doc.fontSize(12).text(`$${formatNumber(account.account_balance)}`, {
+            align: "right",
+          });
           doc.moveDown(0.5);
         });
 
@@ -489,11 +487,9 @@ ipcMain.handle(
             .fontSize(12)
             .font("Helvetica")
             .text(account.description, { continued: true });
-          doc
-            .fontSize(12)
-            .text(`$${formatNumber(account.account_balance)}`, {
-              align: "right",
-            });
+          doc.fontSize(12).text(`$${formatNumber(account.account_balance)}`, {
+            align: "right",
+          });
           doc.moveDown(0.5);
         });
 
@@ -520,11 +516,9 @@ ipcMain.handle(
             .fontSize(12)
             .font("Helvetica")
             .text(account.description, { continued: true });
-          doc
-            .fontSize(12)
-            .text(`$${formatNumber(account.account_balance)}`, {
-              align: "right",
-            });
+          doc.fontSize(12).text(`$${formatNumber(account.account_balance)}`, {
+            align: "right",
+          });
           doc.moveDown(0.5);
         });
 
@@ -549,12 +543,32 @@ ipcMain.handle(
             underline: false,
             continued: true,
           });
+        const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
         doc
           .fontSize(16)
           .font("Helvetica-Bold")
           .text(`$${formatNumber(totalLiabilities + totalEquity)}`, {
             align: "right",
           });
+
+        // Check if totals match
+        if (totalAssets !== totalLiabilitiesAndEquity) {
+          const difference = Math.abs(totalAssets - totalLiabilitiesAndEquity);
+          doc.moveDown(2);
+          doc
+            .fontSize(16)
+            .font("Helvetica-Bold")
+            .fillColor("red")
+            .text("EQUATION NOT IN BALANCE", { align: "center" });
+          doc.moveDown(0.5);
+          doc
+            .fontSize(14)
+            .font("Helvetica-Bold")
+            .text(`CROSS-CHECK $${formatNumber(difference)}`, {
+              align: "center",
+            })
+            .fillColor("black"); // Reset color to black for subsequent text
+        }
       } else if (reportType === "incomeStatement") {
         // Income Statement report generation code...
 
@@ -569,11 +583,9 @@ ipcMain.handle(
             .fontSize(12)
             .font("Helvetica")
             .text(account.description, { continued: true });
-          doc
-            .fontSize(12)
-            .text(`$${formatNumber(account.account_balance)}`, {
-              align: "right",
-            });
+          doc.fontSize(12).text(`$${formatNumber(account.account_balance)}`, {
+            align: "right",
+          });
           doc.moveDown(0.5);
         });
 
@@ -600,11 +612,9 @@ ipcMain.handle(
             .fontSize(12)
             .font("Helvetica")
             .text(account.description, { continued: true });
-          doc
-            .fontSize(12)
-            .text(`$${formatNumber(account.account_balance)}`, {
-              align: "right",
-            });
+          doc.fontSize(12).text(`$${formatNumber(account.account_balance)}`, {
+            align: "right",
+          });
           doc.moveDown(0.5);
         });
 
