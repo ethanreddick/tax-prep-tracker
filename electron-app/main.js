@@ -668,34 +668,45 @@ ipcMain.handle(
               debit = -netChange;
             }
 
-            totalDebits += debit;
-            totalCredits += credit;
+            if (debit !== 0 || credit !== 0) {
+              totalDebits += debit;
+              totalCredits += credit;
 
-            doc
-              .fontSize(12)
-              .font("Helvetica")
-              .text(description, startX, currentY, { width: columnWidth });
+              doc
+                .fontSize(12)
+                .font("Helvetica")
+                .text(description, startX, currentY, { width: columnWidth });
 
-            doc
-              .fontSize(12)
-              .text(`$${debit.toFixed(2)}`, startX + columnWidth, currentY, {
-                width: columnWidth,
-                align: "right",
-              });
+              if (debit !== 0) {
+                doc
+                  .fontSize(12)
+                  .text(
+                    `$${debit.toFixed(2)}`,
+                    startX + columnWidth,
+                    currentY,
+                    {
+                      width: columnWidth,
+                      align: "right",
+                    },
+                  );
+              }
 
-            doc
-              .fontSize(12)
-              .text(
-                `$${credit.toFixed(2)}`,
-                startX + 2 * columnWidth,
-                currentY,
-                {
-                  width: columnWidth,
-                  align: "right",
-                },
-              );
+              if (credit !== 0) {
+                doc
+                  .fontSize(12)
+                  .text(
+                    `$${credit.toFixed(2)}`,
+                    startX + 2 * columnWidth,
+                    currentY,
+                    {
+                      width: columnWidth,
+                      align: "right",
+                    },
+                  );
+              }
 
-            currentY += 20;
+              currentY += 20;
+            }
           },
         );
 
