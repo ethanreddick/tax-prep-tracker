@@ -658,8 +658,18 @@ ipcMain.handle(
         // Iterate through trialBalanceData
         trialBalanceData.forEach(
           ({ description, total_debit, total_credit }) => {
-            totalDebits += total_debit;
-            totalCredits += total_credit;
+            const netChange = total_credit - total_debit;
+            let debit = 0;
+            let credit = 0;
+
+            if (netChange > 0) {
+              credit = netChange;
+            } else {
+              debit = -netChange;
+            }
+
+            totalDebits += debit;
+            totalCredits += credit;
 
             doc
               .fontSize(12)
@@ -668,20 +678,15 @@ ipcMain.handle(
 
             doc
               .fontSize(12)
-              .text(
-                `$${total_debit.toFixed(2)}`,
-                startX + columnWidth,
-                currentY,
-                {
-                  width: columnWidth,
-                  align: "right",
-                },
-              );
+              .text(`$${debit.toFixed(2)}`, startX + columnWidth, currentY, {
+                width: columnWidth,
+                align: "right",
+              });
 
             doc
               .fontSize(12)
               .text(
-                `$${total_credit.toFixed(2)}`,
+                `$${credit.toFixed(2)}`,
                 startX + 2 * columnWidth,
                 currentY,
                 {
