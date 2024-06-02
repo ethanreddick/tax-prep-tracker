@@ -49,6 +49,78 @@ function createWindow() {
 
 app.on("ready", createWindow);
 
+// Helper functions for date calculations
+function getFiscalYearStart() {
+  const now = new Date();
+  const year = now.getMonth() >= 9 ? now.getFullYear() : now.getFullYear() - 1;
+  return new Date(year, 9, 1); // October 1st of the fiscal year
+}
+
+function getToday() {
+  return new Date();
+}
+
+// Handlers for fetching data
+ipcMain.handle("fetch-revenue-accounts", async () => {
+  return new Promise((resolve, reject) => {
+    const fiscalYearStart = getFiscalYearStart();
+    const today = getToday();
+    const query = `
+      SELECT
+        a.account_id,
+        a.description,
+        a.account_class,
+        SUM(tl.amount) AS account_balance
+      FROM
+        accounts a
+        LEFT JOIN transaction_lines tl ON a.account_id = tl.account_id
+        LEFT JOIN transactions t ON tl.transaction_id = t.transaction_id
+      WHERE
+        a.account_class = 'Revenue' AND
+        t.transaction_date BETWEEN ? AND ?
+      GROUP BY
+        a.account_id, a.description, a.account_class
+    `;
+    connection.query(query, [fiscalYearStart, today], (error, results) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(results);
+      }
+    });
+  });
+});
+
+ipcMain.handle("fetch-expense-accounts", async () => {
+  return new Promise((resolve, reject) => {
+    const fiscalYearStart = getFiscalYearStart();
+    const today = getToday();
+    const query = `
+      SELECT
+        a.account_id,
+        a.description,
+        a.account_class,
+        SUM(tl.amount) AS account_balance
+      FROM
+        accounts a
+        LEFT JOIN transaction_lines tl ON a.account_id = tl.account_id
+        LEFT JOIN transactions t ON tl.transaction_id = t.transaction_id
+      WHERE
+        a.account_class = 'Expense' AND
+        t.transaction_date BETWEEN ? AND ?
+      GROUP BY
+        a.account_id, a.description, a.account_class
+    `;
+    connection.query(query, [fiscalYearStart, today], (error, results) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(results);
+      }
+    });
+  });
+});
+
 ipcMain.handle("fetch-clients", async () => {
   return new Promise((resolve, reject) => {
     connection.query(
@@ -424,24 +496,45 @@ ipcMain.handle(
 
       // Title and date
       let title = "";
+      let dateRange = "";
+      const currentDate = new Date();
+
       if (reportType === "balanceSheet") {
         title = "Balance Sheet";
-      } else if (reportType === "incomeStatement") {
+        dateRange = currentDate.toLocaleDateString("en-US", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+      } else {
+        const startOfYear = new Date(
+          currentDate.getFullYear(),
+          currentDate.getMonth() >= 9 ? 9 : -3,
+          1,
+        );
+        dateRange = `${startOfYear.toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        })} - ${currentDate.toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        })}`;
+      }
+
+      if (reportType === "incomeStatement") {
         title = "Income Statement";
       } else if (reportType === "trialBalance") {
         title = "Trial Balance";
       }
+
       doc.fontSize(20).text(title, { align: "center" });
       doc.moveDown(0.5);
 
-      // Add the current date in full form below the title
-      const currentDate = new Date().toLocaleDateString("en-US", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-      doc.fontSize(14).text(`${currentDate}`, { align: "center" });
+      // Add the date range
+      doc.fontSize(14).text(`${dateRange}`, { align: "center" });
       doc.moveDown(2);
 
       if (reportType === "balanceSheet") {
@@ -547,7 +640,7 @@ ipcMain.handle(
         doc
           .fontSize(16)
           .font("Helvetica-Bold")
-          .text(`$${formatNumber(totalLiabilities + totalEquity)}`, {
+          .text(`$${formatNumber(totalLiabilitiesAndEquity)}`, {
             align: "right",
           });
 
@@ -768,7 +861,7 @@ ipcMain.handle(
 
       doc.end();
 
-      return "Report generated successfully.";
+      return `${title} generated successfully.`;
     } catch (error) {
       console.error("Error generating PDF report: ", error);
       throw new Error(error.message);
