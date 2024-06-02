@@ -60,67 +60,6 @@ function getToday() {
   return new Date();
 }
 
-// Handlers for fetching data
-ipcMain.handle("fetch-revenue-accounts", async () => {
-  return new Promise((resolve, reject) => {
-    const fiscalYearStart = getFiscalYearStart();
-    const today = getToday();
-    const query = `
-      SELECT
-        a.account_id,
-        a.description,
-        a.account_class,
-        SUM(tl.amount) AS account_balance
-      FROM
-        accounts a
-        LEFT JOIN transaction_lines tl ON a.account_id = tl.account_id
-        LEFT JOIN transactions t ON tl.transaction_id = t.transaction_id
-      WHERE
-        a.account_class = 'Revenue' AND
-        t.transaction_date BETWEEN ? AND ?
-      GROUP BY
-        a.account_id, a.description, a.account_class
-    `;
-    connection.query(query, [fiscalYearStart, today], (error, results) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(results);
-      }
-    });
-  });
-});
-
-ipcMain.handle("fetch-expense-accounts", async () => {
-  return new Promise((resolve, reject) => {
-    const fiscalYearStart = getFiscalYearStart();
-    const today = getToday();
-    const query = `
-      SELECT
-        a.account_id,
-        a.description,
-        a.account_class,
-        SUM(tl.amount) AS account_balance
-      FROM
-        accounts a
-        LEFT JOIN transaction_lines tl ON a.account_id = tl.account_id
-        LEFT JOIN transactions t ON tl.transaction_id = t.transaction_id
-      WHERE
-        a.account_class = 'Expense' AND
-        t.transaction_date BETWEEN ? AND ?
-      GROUP BY
-        a.account_id, a.description, a.account_class
-    `;
-    connection.query(query, [fiscalYearStart, today], (error, results) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(results);
-      }
-    });
-  });
-});
-
 ipcMain.handle("fetch-clients", async () => {
   return new Promise((resolve, reject) => {
     connection.query(
@@ -476,15 +415,30 @@ ipcMain.handle(
         assetAccounts,
         liabilityAccounts,
         equityAccounts,
-        revenueAccounts,
-        expenseAccounts,
         trialBalanceData = [],
         totalAssets,
         totalLiabilities,
         totalEquity,
-        totalRevenue,
-        totalExpenses,
       } = content;
+
+      let revenueAccounts = [];
+      let expenseAccounts = [];
+      let totalRevenue = 0;
+      let totalExpenses = 0;
+
+      if (reportType === "incomeStatement") {
+        revenueAccounts = await fetchRevenueAccounts();
+        expenseAccounts = await fetchExpenseAccounts();
+
+        totalRevenue = revenueAccounts.reduce(
+          (sum, account) => sum + account.account_balance,
+          0,
+        );
+        totalExpenses = expenseAccounts.reduce(
+          (sum, account) => sum + account.account_balance,
+          0,
+        );
+      }
 
       const doc = new PDFDocument();
       doc.pipe(fs.createWriteStream(reportPath));
@@ -1009,6 +963,92 @@ ipcMain.handle("fetch-trial-balance-data", async (event) => {
     return results;
   } catch (error) {
     console.error("Error fetching trial balance data:", error);
+    throw error;
+  }
+});
+
+async function fetchRevenueAccounts() {
+  return new Promise((resolve, reject) => {
+    const fiscalYearStart = getFiscalYearStart().toISOString().split("T")[0];
+    const today = getToday().toISOString().split("T")[0];
+    const query = `
+      SELECT
+        a.account_id,
+        a.description,
+        SUM(tl.amount) AS account_balance
+      FROM
+        accounts a
+        LEFT JOIN transaction_lines tl ON a.account_id = tl.account_id
+        LEFT JOIN transactions t ON tl.transaction_id = t.transaction_id
+      WHERE
+        a.account_class = 'Revenue' AND
+        t.transaction_date BETWEEN ? AND ?
+      GROUP BY
+        a.account_id, a.description
+    `;
+    connection.query(query, [fiscalYearStart, today], (error, results) => {
+      if (error) {
+        reject(error);
+      } else {
+        const revenueAccounts = results.map((result) => ({
+          description: result.description,
+          account_balance: parseFloat(result.account_balance.toFixed(2)),
+        }));
+        resolve(revenueAccounts);
+      }
+    });
+  });
+}
+
+async function fetchExpenseAccounts() {
+  return new Promise((resolve, reject) => {
+    const fiscalYearStart = getFiscalYearStart().toISOString().split("T")[0];
+    const today = getToday().toISOString().split("T")[0];
+    const query = `
+      SELECT
+        a.account_id,
+        a.description,
+        SUM(-tl.amount) AS account_balance
+      FROM
+        accounts a
+        LEFT JOIN transaction_lines tl ON a.account_id = tl.account_id
+        LEFT JOIN transactions t ON tl.transaction_id = t.transaction_id
+      WHERE
+        a.account_class = 'Expense' AND
+        t.transaction_date BETWEEN ? AND ?
+      GROUP BY
+        a.account_id, a.description
+    `;
+    connection.query(query, [fiscalYearStart, today], (error, results) => {
+      if (error) {
+        reject(error);
+      } else {
+        const expenseAccounts = results.map((result) => ({
+          description: result.description,
+          account_balance: parseFloat(result.account_balance.toFixed(2)),
+        }));
+        resolve(expenseAccounts);
+      }
+    });
+  });
+}
+
+ipcMain.handle("fetch-revenue-accounts", async () => {
+  try {
+    const results = await fetchRevenueAccounts();
+    return results;
+  } catch (error) {
+    console.error("Error fetching revenue accounts:", error);
+    throw error;
+  }
+});
+
+ipcMain.handle("fetch-expense-accounts", async () => {
+  try {
+    const results = await fetchExpenseAccounts();
+    return results;
+  } catch (error) {
+    console.error("Error fetching expense accounts:", error);
     throw error;
   }
 });

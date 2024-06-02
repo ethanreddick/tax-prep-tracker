@@ -1314,6 +1314,36 @@ function generateReport() {
   });
 }
 
+document
+  .getElementById("generate-report-button")
+  .addEventListener("click", async () => {
+    const reportType = document.getElementById("report-type").value;
+    const reportPath = await window.api.openDirectoryDialog();
+    if (!reportPath) {
+      alert("Please select a directory to save the report.");
+      return;
+    }
+
+    let content = {};
+
+    if (reportType === "balanceSheet") {
+      content = await window.api.fetchAccounts();
+    } else if (reportType === "incomeStatement") {
+      const revenueAccounts = await window.api.fetchRevenueAccounts();
+      const expenseAccounts = await window.api.fetchExpenseAccounts();
+      content = { revenueAccounts, expenseAccounts };
+    } else if (reportType === "trialBalance") {
+      content = await window.api.fetchTrialBalanceData();
+    }
+
+    const response = await window.api.generatePdfReport(
+      reportPath,
+      content,
+      reportType,
+    );
+    alert(response);
+  });
+
 // Function to open directory dialog and select a path
 function openDirectoryDialog() {
   window.electronAPI.openDirectoryDialog().then((selectedPath) => {
