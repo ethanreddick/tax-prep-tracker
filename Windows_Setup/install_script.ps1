@@ -38,6 +38,15 @@ function Check-AndInstallPdfkit {
     Write-Host "pdfkit is installed."
 }
 
+function Check-AndInstallElectronUpdater {
+    Write-Host "Checking for electron-updater..."
+    if (-Not (npm list electron-updater -g -depth=0 | Select-String -Pattern "electron-updater")) {
+        Write-Host "electron-updater is not installed. Installing electron-updater..."
+        npm install -g electron-updater
+    }
+    Write-Host "electron-updater is installed."
+}
+
 function Check-AndInstallPython {
     Write-Host "Checking for Python 3..."
     if (-Not (Get-Command python -ErrorAction SilentlyContinue)) {
@@ -127,6 +136,7 @@ fs.writeFileSync('$configPath', JSON.stringify({ key: key.toString('hex'), iv: i
 function Main {
     Check-AndInstallNode
     Check-AndInstallPdfkit
+    Check-AndInstallElectronUpdater
     Check-AndInstallPython
     Check-AndInstallMySQL
     Setup-VirtualEnvironment

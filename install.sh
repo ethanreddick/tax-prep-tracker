@@ -52,6 +52,17 @@ check_and_install_pdfkit() {
     fi
 }
 
+# Check and install electron-updater
+check_and_install_electron_updater() {
+    echo "Checking for electron-updater..."
+    if ! npm list electron-updater &>/dev/null; then
+        echo "electron-updater is not installed. Installing electron-updater..."
+        npm install electron-updater
+    else
+        echo "electron-updater is installed."
+    fi
+}
+
 # Ensure Python is installed and update pip
 check_and_install_python() {
     echo "Checking for Python 3..."
@@ -129,6 +140,7 @@ main() {
 
     check_and_install_node
     check_and_install_pdfkit
+    check_and_install_electron_updater
     check_and_install_python
     check_and_install_mysql
     setup_virtual_environment
