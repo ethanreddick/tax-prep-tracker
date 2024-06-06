@@ -4,6 +4,7 @@ const mysql = require("mysql");
 const fs = require("fs");
 const PDFDocument = require("pdfkit");
 const crypto = require("crypto");
+const { autoUpdater } = require("electron-updater");
 
 // Read and parse the configuration file
 const configPath = path.join(__dirname, "../config.json");
@@ -45,9 +46,36 @@ function createWindow() {
 
   // Load the index.html of the app.
   win.loadFile(path.join(__dirname, "renderer", "index.html"));
+
+  win.once("ready-to-show", () => {
+    autoUpdater.checkForUpdatesAndNotify();
+  });
 }
 
 app.on("ready", createWindow);
+autoUpdater.on("update-available", () => {
+  dialog.showMessageBox({
+    type: "info",
+    title: "Update available",
+    message: "A new version is available. Downloading now...",
+  });
+});
+
+autoUpdater.on("update-downloaded", () => {
+  dialog
+    .showMessageBox({
+      type: "info",
+      title: "Update ready",
+      message:
+        "A new version has been downloaded. Restart the application to apply the updates.",
+      buttons: ["Restart", "Later"],
+    })
+    .then((result) => {
+      if (result.response === 0) {
+        autoUpdater.quitAndInstall();
+      }
+    });
+});
 
 // Helper functions for date calculations
 function getFiscalYearStart() {
