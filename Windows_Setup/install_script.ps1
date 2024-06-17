@@ -93,7 +93,7 @@ function Setup-VirtualEnvironment {
 }
 
 function Run-DatabaseInitScript {
-    $configPath = "config.json"
+    $configPath = "resources\config.json"
 
     # Check if config file already exists and remove it
     if (Test-Path $configPath) {
@@ -102,7 +102,8 @@ function Run-DatabaseInitScript {
     }
 
     $mysqlUsername = Read-Host "Please enter a MySQL username (e.g., 'Jacob') to use"
-    $mysqlPassword = Read-Host "Please enter a MySQL password to use" -AsSecureString | ConvertFrom-SecureString
+    $mysqlPassword = Read-Host "Please enter a MySQL password to use" -AsSecureString
+    $plainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($mysqlPassword))
 
     Write-Host "Encrypting and storing credentials..."
     $cryptoScript = @"
@@ -112,9 +113,9 @@ const algorithm = 'aes-256-cbc';
 const key = crypto.randomBytes(32);
 const iv = crypto.randomBytes(16);
 const cipher = crypto.createCipheriv(algorithm, key, iv);
-let crypted = cipher.update('$mysqlUsername:$mysqlPassword', 'utf8', 'hex');
+let crypted = cipher.update('${mysqlUsername}:${plainPassword}', 'utf8', 'hex');
 crypted += cipher.final('hex');
-fs.writeFileSync('$configPath', JSON.stringify({ key: key.toString('hex'), iv: iv.toString('hex'), encrypted: crypted }));
+fs.writeFileSync('${configPath}', JSON.stringify({ key: key.toString('hex'), iv: iv.toString('hex'), encrypted: crypted }));
 "@
     echo $cryptoScript | node
 
@@ -126,10 +127,10 @@ fs.writeFileSync('$configPath', JSON.stringify({ key: key.toString('hex'), iv: i
     Write-Host "Downloading and running the database initialization script..."
     & "$env:USERPROFILE\tax_prep_venv\Scripts\Activate.ps1"
     Invoke-WebRequest -Uri "https://raw.githubusercontent.com/ethanreddick/tax-prep-tracker/main/init_db.py" -OutFile "init_db.py"
-    python init_db.py $mysqlUsername $mysqlPassword
+    python init_db.py $mysqlUsername $plainPassword
 
     Write-Host "Configuring MySQL authentication plugin..."
-    mysql -u $mysqlUsername -p"$mysqlPassword" -e "ALTER USER '$mysqlUsername'@'localhost' IDENTIFIED WITH mysql_native_password BY '$mysqlPassword'; FLUSH PRIVILEGES;"
+    mysql -u $mysqlUsername -p"$plainPassword" -e "ALTER USER '$mysqlUsername'@'localhost' IDENTIFIED WITH mysql_native_password BY '$plainPassword'; FLUSH PRIVILEGES;"
 }
 
 # Main function to perform checks
