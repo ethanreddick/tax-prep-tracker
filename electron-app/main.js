@@ -1190,6 +1190,6 @@ ipcMain.handle("focus-window", () => {
     mainWindow.blur();
     setTimeout(() => {
       mainWindow.focus();
-    }, 100); // Adjust the delay if necessary
+    }, 1);
   }
 });
