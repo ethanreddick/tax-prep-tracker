@@ -426,6 +426,10 @@ function deleteTransaction(transactionId) {
   }
 }
 
+function logError(errorMessage) {
+  window.electronAPI.logError(errorMessage);
+}
+
 function updatePagination(transactionsToRender = transactions) {
   const pageInfo = document.getElementById("pageInfo");
   const totalPages = Math.ceil(transactionsToRender.length / itemsPerPage);

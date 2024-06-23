@@ -1,17 +1,42 @@
 const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
-const mysql = require("mysql");
+const mysql = require("mysql2");
 const fs = require("fs");
 const PDFDocument = require("pdfkit");
 const crypto = require("crypto");
 const { autoUpdater } = require("electron-updater");
+const { exec } = require('child_process');
+const os = require('os');
 
 // Read and parse the configuration file
-const configPath = path.join(__dirname, "../config.json");
+const configPath = path.join(app.getPath('appData'), 'TaxPrepTracker', 'config.json');
 const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
 const algorithm = "aes-256-cbc";
 const key = Buffer.from(config.key, "hex");
 const iv = Buffer.from(config.iv, "hex");
+
+// Function to log errors
+function logError(error) {
+  try {
+    const logFilePath = path.join(os.homedir(), 'tax-prep-tracker-error_log.txt');
+    const logMessage = `${new Date().toISOString()} - ${error.stack || error}\n\n`;
+    fs.appendFileSync(logFilePath, logMessage, 'utf8');
+    console.log(`Logged error to ${logFilePath}`);
+  } catch (logError) {
+    console.error('Failed to write error log:', logError);
+  }
+}
+
+// Catch unhandled exceptions and promise rejections
+process.on('uncaughtException', (error) => {
+  console.error('Unhandled Exception:', error);
+  logError(error);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection:', reason);
+  logError(reason);
+});
 
 function decrypt(encrypted) {
   const encryptedText = Buffer.from(encrypted, "hex");
@@ -28,7 +53,17 @@ const connection = mysql.createConnection({
   host: "localhost",
   user: credentials[0],
   password: credentials[1],
-  database: "tax_prep_db",
+  database: "tax_prep_db"
+});
+
+// Attempt to connect and log any errors
+connection.connect((err) => {
+  if (err) {
+    logError(`Error connecting to MySQL: ${err.message}`);
+    console.error(`Error connecting to MySQL: ${err.message}`);
+  } else {
+    console.log('Connected to MySQL successfully.');
+  }
 });
 
 function createWindow() {
@@ -44,6 +79,8 @@ function createWindow() {
     },
   });
 
+  console.log('Creating main window');
+
   // Load the index.html of the app.
   win.loadFile(path.join(__dirname, "renderer", "index.html"));
 
@@ -53,6 +90,19 @@ function createWindow() {
 }
 
 app.on("ready", createWindow);
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
+});
+
 autoUpdater.on("update-available", () => {
   dialog.showMessageBox({
     type: "info",
@@ -385,15 +435,28 @@ ipcMain.handle("fetch-transaction-details", async () => {
     connection.query(query, (error, results) => {
       if (error) {
         console.error("Error fetching transaction details:", error);
+        logError(error);
         reject(error);
       } else {
-        // Parse accounts JSON string
-        const parsedResults = results.map((row) => ({
-          ...row,
-          accounts: JSON.parse(row.accounts),
-        }));
-        console.log("Fetched transaction details:", parsedResults); // Debug log
-        resolve(parsedResults);
+        try {
+          // Log raw query results for debugging
+          console.log("Raw query results:", results);
+          const logFilePath = path.join(os.homedir(), 'tax-prep-tracker-query_log.txt');
+          fs.appendFileSync(logFilePath, `${new Date().toISOString()} - Raw query results: ${JSON.stringify(results)}\n\n`, 'utf8');
+
+          // Since accounts is already parsed as an array of objects, no need to JSON.parse
+          const parsedResults = results.map((row) => ({
+            ...row,
+            accounts: row.accounts || [], // Ensure accounts is always an array
+          }));
+          console.log("Parsed transaction details:", parsedResults); // Debug log
+          fs.appendFileSync(logFilePath, `${new Date().toISOString()} - Parsed transaction details: ${JSON.stringify(parsedResults)}\n\n`, 'utf8');
+          resolve(parsedResults);
+        } catch (parseError) {
+          console.error("Error parsing transaction details:", parseError);
+          logError(parseError);
+          reject(parseError);
+        }
       }
     });
   });
@@ -473,6 +536,12 @@ ipcMain.handle(
 
       // Helper function to format numbers with commas
       const formatNumber = (num) => {
+        if (typeof num !== 'number') {
+          num = parseFloat(num);
+        }
+        if (isNaN(num)) {
+          num = 0;
+        }
         return num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
       };
 
@@ -846,6 +915,7 @@ ipcMain.handle(
       return `${title} generated successfully.`;
     } catch (error) {
       console.error("Error generating PDF report: ", error);
+      logError(error);
       throw new Error(error.message);
     }
   },
@@ -853,6 +923,7 @@ ipcMain.handle(
 
 ipcMain.handle("delete-transaction", async (event, transactionId) => {
   try {
+    logError(`Starting deletion for transaction ID: ${transactionId}`);
     // Start a transaction
     await connection.beginTransaction();
 
@@ -862,16 +933,17 @@ ipcMain.handle("delete-transaction", async (event, transactionId) => {
         `SELECT account_id, amount FROM transaction_lines WHERE transaction_id = ?`,
         [transactionId],
         (error, results) => {
-          if (error) return reject(error);
+          if (error) {
+            logError(`Error fetching transaction lines for ID: ${transactionId} - ${error.message}`);
+            return reject(error);
+          }
           resolve(results);
         },
       );
     });
 
     if (!Array.isArray(transactionLines) || transactionLines.length === 0) {
-      throw new Error(
-        "No transaction lines found for the given transaction ID.",
-      );
+      throw new Error("No transaction lines found for the given transaction ID.");
     }
 
     // Rollback the changes to the accounts
@@ -881,7 +953,10 @@ ipcMain.handle("delete-transaction", async (event, transactionId) => {
           `UPDATE accounts SET account_balance = account_balance + ? WHERE account_id = ?`,
           [-line.amount, line.account_id],
           (error) => {
-            if (error) return reject(error);
+            if (error) {
+              logError(`Error updating account balance for account ID: ${line.account_id} - ${error.message}`);
+              return reject(error);
+            }
             resolve();
           },
         );
@@ -894,7 +969,10 @@ ipcMain.handle("delete-transaction", async (event, transactionId) => {
         `DELETE FROM transaction_lines WHERE transaction_id = ?`,
         [transactionId],
         (error) => {
-          if (error) return reject(error);
+          if (error) {
+            logError(`Error deleting transaction lines for transaction ID: ${transactionId} - ${error.message}`);
+            return reject(error);
+          }
           resolve();
         },
       );
@@ -906,7 +984,10 @@ ipcMain.handle("delete-transaction", async (event, transactionId) => {
         `DELETE FROM transactions WHERE transaction_id = ?`,
         [transactionId],
         (error) => {
-          if (error) return reject(error);
+          if (error) {
+            logError(`Error deleting transaction ID: ${transactionId} - ${error.message}`);
+            return reject(error);
+          }
           resolve();
         },
       );
@@ -914,12 +995,19 @@ ipcMain.handle("delete-transaction", async (event, transactionId) => {
 
     // Commit the transaction
     await connection.commit();
+    logError(`Successfully deleted transaction ID: ${transactionId}`);
     return { success: true };
   } catch (error) {
     // Rollback the transaction in case of error
     await connection.rollback();
+    logError(`Error during deletion of transaction ID: ${transactionId} - ${error.message}`);
     return { success: false, error: error.message };
   }
+});
+
+// Expose a method to log errors from renderer process
+ipcMain.handle("log-error", async (event, errorMessage) => {
+  logError(errorMessage);
 });
 
 async function fetchTrialBalanceData() {

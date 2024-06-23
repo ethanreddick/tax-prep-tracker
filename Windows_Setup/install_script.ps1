@@ -1,9 +1,117 @@
+# Function to check if running as Administrator
+function Test-IsAdministrator {
+    $currentUser = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+    return $currentUser.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+# Relaunch script as Administrator if not already running as Administrator
+if (-not (Test-IsAdministrator)) {
+    Write-Host "Script is not running as Administrator. Restarting with elevated privileges..."
+    Start-Process -FilePath "powershell.exe" -ArgumentList "-ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+    exit
+}
+
+Start-Sleep -Seconds 5  # Give some time for the script to restart
+
+# Log file path
+$logPath = "$env:TEMP\install_script.log"
+
+# Function to log messages to the log file
+function Log-Message {
+    param (
+        [string]$message
+    )
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    "$timestamp - $message" | Out-File -FilePath $logPath -Append
+    Write-Host $message
+}
+
+Log-Message "Script started."
+
+# Read MySQL credentials from the INI file
+$credsPath = "$env:USERPROFILE\Downloads\mysql_creds.ini"
+
+if (Test-Path $credsPath) {
+    $username = (Get-Content $credsPath | Select-String -Pattern 'Username').Line.Split('=')[1].Trim()
+    $password = (Get-Content $credsPath | Select-String -Pattern 'Password').Line.Split('=')[1].Trim()
+} else {
+    # Prompt user for credentials if the INI file does not exist
+    $username = Read-Host "Enter MySQL username"
+
+    while ($true) {
+        $password = Read-Host "Enter MySQL password" -AsSecureString
+        $confirmPassword = Read-Host "Confirm MySQL password" -AsSecureString
+        $password = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
+        $confirmPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($confirmPassword))
+
+        if ($password -eq $confirmPassword) {
+            break
+        } else {
+            Write-Host "Passwords do not match. Please try again."
+        }
+    }
+}
+
+Log-Message "MySQL credentials obtained."
+
+# Directory for storing config.json
+$configDir = "$env:APPDATA\TaxPrepTracker"
+if (-Not (Test-Path $configDir)) {
+    New-Item -Path $configDir -ItemType Directory -Force
+}
+$configPath = "$configDir\config.json"
+
+# Delete existing config.json if it exists
+if (Test-Path $configPath) {
+    Remove-Item -Path $configPath -Force
+    Log-Message "Existing config.json file deleted."
+}
+
+# Encrypt MySQL credentials and write to config.json
+function Encrypt-Credentials {
+    param (
+        [string]$data,
+        [string]$configPath
+    )
+
+    # Generate key and IV
+    $key = [System.Security.Cryptography.Aes]::Create().Key
+    $iv = [System.Security.Cryptography.Aes]::Create().IV
+
+    # Create AES cipher
+    $aes = [System.Security.Cryptography.Aes]::Create()
+    $aes.Key = $key
+    $aes.IV = $iv
+    $encryptor = $aes.CreateEncryptor()
+
+    # Convert data to bytes and encrypt
+    $dataBytes = [System.Text.Encoding]::UTF8.GetBytes($data)
+    $encryptedBytes = $encryptor.TransformFinalBlock($dataBytes, 0, $dataBytes.Length)
+    $encryptedText = [BitConverter]::ToString($encryptedBytes) -replace '-', ''
+
+    # Save key, IV, and encrypted data to config.json
+    $config = @{
+        key = [BitConverter]::ToString($key) -replace '-', ''
+        iv = [BitConverter]::ToString($iv) -replace '-', ''
+        encrypted = $encryptedText
+    }
+    $config | ConvertTo-Json | Set-Content -Path $configPath
+
+    Log-Message "Encrypted credentials written to config.json"
+}
+
+# Encrypt and store credentials
+$credentials = "$username`:$password"
+Encrypt-Credentials -data $credentials -configPath $configPath
+
+Log-Message "Credentials encryption completed."
+
 # PowerShell script to verify presence of dependencies and set up the database
 
 function Check-AndInstallNode {
-    Write-Host "Checking for Node.js..."
+    Log-Message "Checking for Node.js..."
     if (-Not (Get-Command node -ErrorAction SilentlyContinue)) {
-        Write-Host "Node.js is not installed. Installing Node.js..."
+        Log-Message "Node.js is not installed. Installing Node.js..."
 
         # Determine system architecture
         $arch = if ([System.Environment]::Is64BitOperatingSystem) { "x64" } else { "x86" }
@@ -15,134 +123,207 @@ function Check-AndInstallNode {
         Start-Process msiexec.exe -ArgumentList "/i", $installerPath, "/quiet", "/norestart" -Wait
 
         if (-Not (Get-Command node -ErrorAction SilentlyContinue)) {
-            Write-Host "Failed to install Node.js. Please install it manually from https://nodejs.org/"
+            Log-Message "Failed to install Node.js. Please install it manually from https://nodejs.org/"
             exit 1
         }
     }
-    Write-Host "Node.js is installed."
+    Log-Message "Node.js is installed."
 
-    Write-Host "Checking for npm..."
+    Log-Message "Checking for npm..."
     if (-Not (Get-Command npm -ErrorAction SilentlyContinue)) {
-        Write-Host "npm is not installed. Please ensure it is installed with Node.js."
+        Log-Message "npm is not installed. Please ensure it is installed with Node.js."
         exit 1
     }
-    Write-Host "npm is installed."
+    Log-Message "npm is installed."
 }
 
 function Check-AndInstallPdfkit {
-    Write-Host "Checking for pdfkit..."
+    Log-Message "Checking for pdfkit..."
     if (-Not (npm list pdfkit -g -depth=0 | Select-String -Pattern "pdfkit")) {
-        Write-Host "pdfkit is not installed. Installing pdfkit..."
+        Log-Message "pdfkit is not installed. Installing pdfkit..."
         npm install -g pdfkit
     }
-    Write-Host "pdfkit is installed."
+    Log-Message "pdfkit is installed."
 }
 
 function Check-AndInstallElectronUpdater {
-    Write-Host "Checking for electron-updater..."
+    Log-Message "Checking for electron-updater..."
     if (-Not (npm list electron-updater -g -depth=0 | Select-String -Pattern "electron-updater")) {
-        Write-Host "electron-updater is not installed. Installing electron-updater..."
+        Log-Message "electron-updater is not installed. Installing electron-updater..."
         npm install -g electron-updater
     }
-    Write-Host "electron-updater is installed."
+    Log-Message "electron-updater is installed."
+}
+
+function Check-AndInstallNodeModules {
+    Log-Message "Checking for required Node.js modules..."
+    $modules = @("mysql2", "electron-updater", "pdfkit")
+
+    foreach ($module in $modules) {
+        Log-Message "Checking for module $module..."
+        if (-Not (npm list $module -g -depth=0 | Select-String -Pattern $module)) {
+            Log-Message "Module $module is not installed. Installing $module..."
+            npm install -g $module
+        }
+        Log-Message "Module $module is installed."
+    }
 }
 
 function Check-AndInstallPython {
-    Write-Host "Checking for Python 3..."
+    Log-Message "Checking for Python 3..."
     if (-Not (Get-Command python -ErrorAction SilentlyContinue)) {
-        Write-Host "Python 3 is not installed. Installing Python 3..."
+        Log-Message "Python 3 is not installed. Installing Python 3..."
         $pythonInstaller = "https://www.python.org/ftp/python/3.9.5/python-3.9.5-amd64.exe"
         $installerPath = "$env:TEMP\python.exe"
         Invoke-WebRequest -Uri $pythonInstaller -OutFile $installerPath
         Start-Process -FilePath $installerPath -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait
 
         if (-Not (Get-Command python -ErrorAction SilentlyContinue)) {
-            Write-Host "Failed to install Python 3. Please install it manually from https://www.python.org/"
+            Log-Message "Failed to install Python 3. Please install it manually from https://www.python.org/"
             exit 1
         }
     }
-    Write-Host "Python 3 is installed."
+    Log-Message "Python 3 is installed."
 
-    Write-Host "Updating pip..."
+    Log-Message "Updating pip..."
     python -m pip install --upgrade pip
 }
 
 function Check-AndInstallMySQL {
-    Write-Host "Checking for MySQL..."
+    Log-Message "Checking for MySQL..."
     if (-Not (Get-Command mysql -ErrorAction SilentlyContinue)) {
-        Write-Host "MySQL is not installed. Installing MySQL..."
-        $mysqlInstaller = "https://dev.mysql.com/get/Downloads/MySQLInstaller/mysql-installer-web-community-8.0.23.0.msi"
-        $installerPath = "$env:TEMP\mysql.msi"
-        Invoke-WebRequest -Uri $mysqlInstaller -OutFile $installerPath
-        Start-Process msiexec.exe -ArgumentList "/i", $installerPath, "/quiet", "/norestart" -Wait
+        Log-Message "MySQL is not installed. Installing MySQL..."
+        $mysqlServerInstaller = "https://dev.mysql.com/get/Downloads/MySQL-8.4/mysql-8.4.26-winx64.msi"
+        $installerPath = "$env:TEMP\mysql_server.msi"
 
-        if (-Not (Get-Command mysql -ErrorAction SilentlyContinue)) {
-            Write-Host "Failed to install MySQL. Please install it manually from https://dev.mysql.com/downloads/installer/"
+        if (-Not (Test-Path $installerPath)) {
+            Log-Message "Downloading MySQL Server installer..."
+            Invoke-WebRequest -Uri $mysqlServerInstaller -OutFile $installerPath
+            Log-Message "Downloaded MySQL Server installer to $installerPath"
+        } else {
+            Log-Message "MySQL Server installer already exists at $installerPath. Skipping download."
+        }
+
+        # Run the installer in GUI mode
+        Start-Process msiexec.exe -ArgumentList "/i `"$installerPath`"" -Wait
+
+        # Check if installation succeeded
+        if (-Not (Test-Path "C:\Program Files\MySQL\MySQL Server 8.4\bin\mysqld.exe")) {
+            Log-Message "MySQL installation failed."
             exit 1
         }
     }
-    Write-Host "MySQL is installed."
+    Log-Message "MySQL is installed."
+
+    Log-Message "Configuring MySQL Server..."
+
+    # Ensure the data directory is empty before initialization
+    $dataDir = "C:\Program Files\MySQL\MySQL Server 8.4\data"
+    if (Test-Path $dataDir) {
+        Remove-Item -Recurse -Force $dataDir
+    }
+
+    & "C:\Program Files\MySQL\MySQL Server 8.4\bin\mysqld.exe" --initialize-insecure --console
+
+    Log-Message "Starting MySQL Service..."
+
+    # Manually set up the MySQL service using sc.exe
+    $serviceName = "MySQL80"
+    $binPath = "C:\Program Files\MySQL\MySQL Server 8.4\bin\mysqld.exe"
+    $defaultFile = "C:\Program Files\MySQL\MySQL Server 8.4\my.ini"
+    sc.exe create $serviceName binPath= "\"$binPath\" --defaults-file=\"$defaultFile\" $serviceName" DisplayName= "MySQL80" start= auto > $null 2>&1
+
+    Start-Sleep -Seconds 5 # Wait a few seconds before attempting to start the service
+
+    sc.exe start $serviceName > $null 2>&1
+
+    # Verify if the service started
+    $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+    if ($service -eq $null -or $service.Status -ne 'Running') {
+        Log-Message "Could not start the MySQL service. Checking event logs for MySQL errors..."
+        Get-EventLog -LogName Application -Source MySQL* | Select-Object -First 10 | Out-File -FilePath "$env:TEMP\mysql_event_logs.txt" -Append
+        Log-Message "Event logs captured to $env:TEMP\mysql_event_logs.txt"
+        exit 1
+    }
+    Log-Message "Started MySQL service: MySQL80"
+
+    # No need to enable mysql_native_password since caching_sha2_password is default in MySQL 8.4
+
+    Log-Message "Updating MySQL user authentication method to caching_sha2_password..."
+    & "C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe" -u root --password="$rootPasswordPlain" -e "ALTER USER '$username'@'localhost' IDENTIFIED WITH caching_sha2_password BY '$password'; FLUSH PRIVILEGES;"
+    Log-Message "MySQL user authentication method updated."
+
+    Log-Message "Installing mysql2..."
+    npm install mysql2 --save
+    Log-Message "mysql2 installed."
 }
 
 function Setup-VirtualEnvironment {
-    Write-Host "Setting up Python virtual environment and installing dependencies..."
+    Log-Message "Setting up Python virtual environment and installing dependencies..."
     python -m venv "$env:USERPROFILE\tax_prep_venv"
     & "$env:USERPROFILE\tax_prep_venv\Scripts\Activate.ps1"
-    python -m pip install mysql-connector-python
-    npm install -g crypto
+    pip install mysql-connector-python
+    Log-Message "Virtual environment and dependencies are set up."
 }
 
 function Run-DatabaseInitScript {
-    $configPath = "resources\config.json"
+    Log-Message "Running database initialization script..."
 
-    # Check if config file already exists and remove it
-    if (Test-Path $configPath) {
-        Write-Host "Removing existing config file..."
-        Remove-Item $configPath
+    # Ensure the resources directory exists
+    $resourcesDir = "$env:USERPROFILE\tax_prep_venv\resources"
+    if (-Not (Test-Path $resourcesDir)) {
+        New-Item -ItemType Directory -Path $resourcesDir
     }
 
-    $mysqlUsername = Read-Host "Please enter a MySQL username (e.g., 'Jacob') to use"
-    $mysqlPassword = Read-Host "Please enter a MySQL password to use" -AsSecureString
-    $plainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($mysqlPassword))
+    # Download the init_db.py script
+    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/ethanreddick/tax-prep-tracker/main/init_db.py" -OutFile "$resourcesDir\init_db.py"
 
-    Write-Host "Encrypting and storing credentials..."
-    $cryptoScript = @"
-const crypto = require('crypto');
-const fs = require('fs');
-const algorithm = 'aes-256-cbc';
-const key = crypto.randomBytes(32);
-const iv = crypto.randomBytes(16);
-const cipher = crypto.createCipheriv(algorithm, key, iv);
-let crypted = cipher.update('${mysqlUsername}:${plainPassword}', 'utf8', 'hex');
-crypted += cipher.final('hex');
-fs.writeFileSync('${configPath}', JSON.stringify({ key: key.toString('hex'), iv: iv.toString('hex'), encrypted: crypted }));
-"@
-    echo $cryptoScript | node
-
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "Failed to encrypt and store credentials."
+    # Verify that the Python script was downloaded
+    if (Test-Path "$resourcesDir\init_db.py") {
+        Log-Message "init_db.py script downloaded successfully."
+    } else {
+        Log-Message "init_db.py script download failed."
         exit 1
     }
 
-    Write-Host "Downloading and running the database initialization script..."
+    # Creating a temporary file for credentials
+    $credsFile = "$resourcesDir\creds.json"
+    $creds = @{
+        "username" = $username
+        "password" = $password
+    }
+    $creds | ConvertTo-Json | Set-Content -Path $credsFile
+
+    # Running the database initialization script
+    $pythonExe = "$env:USERPROFILE\tax_prep_venv\Scripts\python.exe"
+    $initDbScript = "$resourcesDir\init_db.py"
+    
+    # Use an array to pass arguments to the Python script
+    $args = @("--creds", "$credsFile")
+
+    Log-Message "Executing the Python script..."
+    Log-Message "Command: $pythonExe $initDbScript $args"
+
+    # Activate the virtual environment and run the script
     & "$env:USERPROFILE\tax_prep_venv\Scripts\Activate.ps1"
-    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/ethanreddick/tax-prep-tracker/main/init_db.py" -OutFile "init_db.py"
-    python init_db.py $mysqlUsername $plainPassword
+    & $pythonExe $initDbScript @args *>&1 | Tee-Object -FilePath "$env:TEMP\python_script_output.log"
 
-    Write-Host "Configuring MySQL authentication plugin..."
-    mysql -u $mysqlUsername -p"$plainPassword" -e "ALTER USER '$mysqlUsername'@'localhost' IDENTIFIED WITH mysql_native_password BY '$plainPassword'; FLUSH PRIVILEGES;"
+    if ($LASTEXITCODE -ne 0) {
+        Log-Message "Python script execution failed with exit code $LASTEXITCODE."
+    } else {
+        Log-Message "Python script executed successfully."
+    }
 }
 
-# Main function to perform checks
-function Main {
-    Check-AndInstallNode
-    Check-AndInstallPdfkit
-    Check-AndInstallElectronUpdater
-    Check-AndInstallPython
-    Check-AndInstallMySQL
-    Setup-VirtualEnvironment
-    Run-DatabaseInitScript
-}
+# Main script execution
+Check-AndInstallNode
+Check-AndInstallPdfkit
+Check-AndInstallElectronUpdater
+Check-AndInstallPython
+Check-AndInstallMySQL
+Check-AndInstallNodeModules
+Setup-VirtualEnvironment
+Run-DatabaseInitScript
 
-# Call the main function
-Main
+Log-Message "Setup complete. Press Enter to exit..."
+Read-Host
