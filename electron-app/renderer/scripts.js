@@ -410,18 +410,32 @@ function reloadManageTransactions() {
   manageTransactions();
 }
 
+function focusWindow() {
+  window.electronAPI.focusWindow();
+}
+
 function deleteTransaction(transactionId) {
-  if (confirm("Are you sure you want to delete this transaction?")) {
+  const userConfirmed = confirm("Are you sure you want to delete this transaction?");
+  if (userConfirmed) {
     window.electronAPI.deleteTransaction(transactionId).then((response) => {
-      if (response.success) {
-        alert("Transaction deleted successfully.");
+      if (response && response.success) {
+        //alert("Transaction deleted successfully.");
+        logError("Transaction deleted successfully. Reloading transactions...");
         reloadManageTransactions(); // Reload the transactions page
+
+        // Bring the window back to focus
+        focusWindow();
       } else {
-        alert("Failed to delete transaction: " + response.message);
+        logError(`Failed to delete transaction: ${response ? response.error : 'Unknown error'}`);
+        alert("Failed to delete transaction: " + (response ? response.error : 'Unknown error'));
       }
+    }).catch((error) => {
+      logError(`Error deleting transaction: ${error.message}`);
+      alert("Error deleting transaction: " + error.message);
     });
     reloadManageTransactions();
   } else {
+    logError("Transaction deletion canceled by user. Reloading transactions...");
     reloadManageTransactions(); // Reload the transactions page on cancel
   }
 }
@@ -429,6 +443,7 @@ function deleteTransaction(transactionId) {
 function logError(errorMessage) {
   window.electronAPI.logError(errorMessage);
 }
+
 
 function updatePagination(transactionsToRender = transactions) {
   const pageInfo = document.getElementById("pageInfo");

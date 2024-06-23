@@ -924,21 +924,29 @@ ipcMain.handle(
 ipcMain.handle("delete-transaction", async (event, transactionId) => {
   try {
     logError(`Starting deletion for transaction ID: ${transactionId}`);
-    // Start a transaction
-    await connection.beginTransaction();
+    await new Promise((resolve, reject) => {
+      connection.beginTransaction((transactionErr) => {
+        if (transactionErr) {
+          logError(`Error starting transaction: ${transactionErr.message}`);
+          reject(transactionErr);
+        } else {
+          resolve();
+        }
+      });
+    });
 
-    // Get the transaction details
     const transactionLines = await new Promise((resolve, reject) => {
       connection.query(
         `SELECT account_id, amount FROM transaction_lines WHERE transaction_id = ?`,
         [transactionId],
-        (error, results) => {
-          if (error) {
-            logError(`Error fetching transaction lines for ID: ${transactionId} - ${error.message}`);
-            return reject(error);
+        (selectErr, results) => {
+          if (selectErr) {
+            logError(`Error selecting transaction lines: ${selectErr.message}`);
+            reject(selectErr);
+          } else {
+            resolve(results);
           }
-          resolve(results);
-        },
+        }
       );
     });
 
@@ -946,61 +954,68 @@ ipcMain.handle("delete-transaction", async (event, transactionId) => {
       throw new Error("No transaction lines found for the given transaction ID.");
     }
 
-    // Rollback the changes to the accounts
-    for (const line of transactionLines) {
-      await new Promise((resolve, reject) => {
+    await Promise.all(transactionLines.map((line) => {
+      return new Promise((resolve, reject) => {
         connection.query(
           `UPDATE accounts SET account_balance = account_balance + ? WHERE account_id = ?`,
           [-line.amount, line.account_id],
-          (error) => {
-            if (error) {
-              logError(`Error updating account balance for account ID: ${line.account_id} - ${error.message}`);
-              return reject(error);
+          (updateErr) => {
+            if (updateErr) {
+              reject(updateErr);
+            } else {
+              resolve();
             }
-            resolve();
-          },
+          }
         );
       });
-    }
+    }));
 
-    // Delete the transaction lines
     await new Promise((resolve, reject) => {
       connection.query(
         `DELETE FROM transaction_lines WHERE transaction_id = ?`,
         [transactionId],
-        (error) => {
-          if (error) {
-            logError(`Error deleting transaction lines for transaction ID: ${transactionId} - ${error.message}`);
-            return reject(error);
+        (deleteLinesErr) => {
+          if (deleteLinesErr) {
+            logError(`Error deleting transaction lines: ${deleteLinesErr.message}`);
+            reject(deleteLinesErr);
+          } else {
+            resolve();
           }
-          resolve();
-        },
+        }
       );
     });
 
-    // Delete the transaction
     await new Promise((resolve, reject) => {
       connection.query(
         `DELETE FROM transactions WHERE transaction_id = ?`,
         [transactionId],
-        (error) => {
-          if (error) {
-            logError(`Error deleting transaction ID: ${transactionId} - ${error.message}`);
-            return reject(error);
+        (deleteTransactionErr) => {
+          if (deleteTransactionErr) {
+            logError(`Error deleting transaction: ${deleteTransactionErr.message}`);
+            reject(deleteTransactionErr);
+          } else {
+            resolve();
           }
-          resolve();
-        },
+        }
       );
     });
 
-    // Commit the transaction
-    await connection.commit();
-    logError(`Successfully deleted transaction ID: ${transactionId}`);
+    await new Promise((resolve, reject) => {
+      connection.commit((commitErr) => {
+        if (commitErr) {
+          logError(`Error committing transaction: ${commitErr.message}`);
+          reject(commitErr);
+        } else {
+          logError(`Successfully deleted transaction ID: ${transactionId}`);
+          resolve();
+        }
+      });
+    });
+
     return { success: true };
   } catch (error) {
-    // Rollback the transaction in case of error
-    await connection.rollback();
     logError(`Error during deletion of transaction ID: ${transactionId} - ${error.message}`);
+    await new Promise((resolve) => connection.rollback(resolve));
     return { success: false, error: error.message };
   }
 });
@@ -1166,5 +1181,15 @@ ipcMain.handle("fetch-expense-accounts", async () => {
   } catch (error) {
     console.error("Error fetching expense accounts:", error);
     throw error;
+  }
+});
+
+ipcMain.handle("focus-window", () => {
+  const mainWindow = BrowserWindow.getAllWindows()[0];
+  if (mainWindow) {
+    mainWindow.blur();
+    setTimeout(() => {
+      mainWindow.focus();
+    }, 100); // Adjust the delay if necessary
   }
 });

@@ -31,4 +31,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   fetchRevenueAccounts: () => ipcRenderer.invoke("fetch-revenue-accounts"),
   fetchExpenseAccounts: () => ipcRenderer.invoke("fetch-expense-accounts"),
   logError: (errorMessage) => ipcRenderer.invoke("log-error", errorMessage),
+  focusWindow: () => ipcRenderer.invoke('focus-window'),
 });
