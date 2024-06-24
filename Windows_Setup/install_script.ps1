@@ -19,11 +19,15 @@ $logPath = "$env:TEMP\install_script.log"
 # Function to log messages to the log file
 function Log-Message {
     param (
-        [string]$message
+        [string]$message,
+        [bool]$exitOnError = $false
     )
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     "$timestamp - $message" | Out-File -FilePath $logPath -Append
     Write-Host $message
+    if ($exitOnError) {
+        exit 1
+    }
 }
 
 Log-Message "Script started."
@@ -118,13 +122,22 @@ function Check-AndInstallNode {
 
         # Download and install Node.js
         $nodeInstaller = "https://nodejs.org/dist/v14.17.0/node-v14.17.0-$arch.msi"
-        $installerPath = "$env:TEMP\nodejs.msi"
-        Invoke-WebRequest -Uri $nodeInstaller -OutFile $installerPath
-        Start-Process msiexec.exe -ArgumentList "/i", $installerPath, "/quiet", "/norestart" -Wait
+        $installerPath = "$PWD\nodejs.msi"
+        try {
+            Invoke-WebRequest -Uri $nodeInstaller -OutFile $installerPath -ErrorAction Stop
+        } catch {
+            Log-Message "Failed to download Node.js installer. Error: $_" $true
+        }
+        Log-Message "Node.js installer downloaded."
+
+        try {
+            Start-Process msiexec.exe -ArgumentList "/i", $installerPath, "/quiet", "/norestart" -Wait -ErrorAction Stop
+        } catch {
+            Log-Message "Failed to install Node.js. Error: $_" $true
+        }
 
         if (-Not (Get-Command node -ErrorAction SilentlyContinue)) {
-            Log-Message "Failed to install Node.js. Please install it manually from https://nodejs.org/"
-            exit 1
+            Log-Message "Failed to install Node.js. Please install it manually from https://nodejs.org/" $true
         }
     }
     Log-Message "Node.js is installed."
@@ -174,13 +187,22 @@ function Check-AndInstallPython {
     if (-Not (Get-Command python -ErrorAction SilentlyContinue)) {
         Log-Message "Python 3 is not installed. Installing Python 3..."
         $pythonInstaller = "https://www.python.org/ftp/python/3.9.5/python-3.9.5-amd64.exe"
-        $installerPath = "$env:TEMP\python.exe"
-        Invoke-WebRequest -Uri $pythonInstaller -OutFile $installerPath
-        Start-Process -FilePath $installerPath -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait
+        $installerPath = "$PWD\python.exe"
+        try {
+            Invoke-WebRequest -Uri $pythonInstaller -OutFile $installerPath -ErrorAction Stop
+        } catch {
+            Log-Message "Failed to download Python installer. Error: $_" $true
+        }
+        Log-Message "Python installer downloaded."
+
+        try {
+            Start-Process -FilePath $installerPath -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait -ErrorAction Stop
+        } catch {
+            Log-Message "Failed to install Python. Error: $_" $true
+        }
 
         if (-Not (Get-Command python -ErrorAction SilentlyContinue)) {
-            Log-Message "Failed to install Python 3. Please install it manually from https://www.python.org/"
-            exit 1
+            Log-Message "Failed to install Python 3. Please install it manually from https://www.python.org/" $true
         }
     }
     Log-Message "Python 3 is installed."
@@ -193,27 +215,38 @@ function Check-AndInstallMySQL {
     Log-Message "Checking for MySQL..."
     if (-Not (Get-Command mysql -ErrorAction SilentlyContinue)) {
         Log-Message "MySQL is not installed. Installing MySQL..."
-        $mysqlServerInstaller = "https://dev.mysql.com/get/Downloads/MySQL-8.4/mysql-8.4.26-winx64.msi"
-        $installerPath = "$env:TEMP\mysql_server.msi"
+        $mysqlServerInstaller = "https://dev.mysql.com/get/Downloads/MySQL-8.4/mysql-8.4.0-winx64.msi"
+        $installerPath = "$PWD\mysql_server.msi"
 
         if (-Not (Test-Path $installerPath)) {
             Log-Message "Downloading MySQL Server installer..."
-            Invoke-WebRequest -Uri $mysqlServerInstaller -OutFile $installerPath
+            try {
+                Invoke-WebRequest -Uri $mysqlServerInstaller -OutFile $installerPath -ErrorAction Stop
+            } catch {
+                Log-Message "Failed to download MySQL installer. Error: $_" $true
+            }
             Log-Message "Downloaded MySQL Server installer to $installerPath"
         } else {
             Log-Message "MySQL Server installer already exists at $installerPath. Skipping download."
         }
 
         # Run the installer in GUI mode
-        Start-Process msiexec.exe -ArgumentList "/i `"$installerPath`"" -Wait
+        try {
+            Start-Process msiexec.exe -ArgumentList "/i `"$installerPath`"" -Wait -ErrorAction Stop
+        } catch {
+            Log-Message "Failed to install MySQL. Error: $_" $true
+        }
 
         # Check if installation succeeded
         if (-Not (Test-Path "C:\Program Files\MySQL\MySQL Server 8.4\bin\mysqld.exe")) {
-            Log-Message "MySQL installation failed."
-            exit 1
+            Log-Message "MySQL installation failed." $true
         }
     }
     Log-Message "MySQL is installed."
+
+    # Add a pause to wait for user to complete MySQL installation
+    Write-Host "MySQL installation completed. Please complete the MySQL setup and then press ENTER to continue..."
+    Read-Host
 
     Log-Message "Configuring MySQL Server..."
 
@@ -228,10 +261,10 @@ function Check-AndInstallMySQL {
     Log-Message "Starting MySQL Service..."
 
     # Manually set up the MySQL service using sc.exe
-    $serviceName = "MySQL80"
+    $serviceName = "MySQL84"
     $binPath = "C:\Program Files\MySQL\MySQL Server 8.4\bin\mysqld.exe"
     $defaultFile = "C:\Program Files\MySQL\MySQL Server 8.4\my.ini"
-    sc.exe create $serviceName binPath= "\"$binPath\" --defaults-file=\"$defaultFile\" $serviceName" DisplayName= "MySQL80" start= auto > $null 2>&1
+    sc.exe create $serviceName binPath= "\"$binPath\" --defaults-file=\"$defaultFile\" $serviceName" DisplayName= "MySQL84" start= auto > $null 2>&1
 
     Start-Sleep -Seconds 5 # Wait a few seconds before attempting to start the service
 
@@ -245,13 +278,7 @@ function Check-AndInstallMySQL {
         Log-Message "Event logs captured to $env:TEMP\mysql_event_logs.txt"
         exit 1
     }
-    Log-Message "Started MySQL service: MySQL80"
-
-    # No need to enable mysql_native_password since caching_sha2_password is default in MySQL 8.4
-
-    Log-Message "Updating MySQL user authentication method to caching_sha2_password..."
-    & "C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe" -u root --password="$rootPasswordPlain" -e "ALTER USER '$username'@'localhost' IDENTIFIED WITH caching_sha2_password BY '$password'; FLUSH PRIVILEGES;"
-    Log-Message "MySQL user authentication method updated."
+    Log-Message "Started MySQL service: MySQL84"
 
     Log-Message "Installing mysql2..."
     npm install mysql2 --save
