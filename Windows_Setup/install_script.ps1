@@ -11,7 +11,7 @@ if (-not (Test-IsAdministrator)) {
     exit
 }
 
-Start-Sleep -Seconds 5  # Give some time for the script to restart
+Start-Sleep -Seconds 1  # Give some time for the script to restart
 
 # Log file path
 $logPath = "$env:TEMP\install_script.log"
@@ -184,27 +184,23 @@ function Check-AndInstallNodeModules {
 
 function Check-AndInstallPython {
     Log-Message "Checking for Python 3..."
-    if (-Not (Get-Command python -ErrorAction SilentlyContinue)) {
-        Log-Message "Python 3 is not installed. Installing Python 3..."
-        $pythonInstaller = "https://www.python.org/ftp/python/3.9.5/python-3.9.5-amd64.exe"
-        $installerPath = "$PWD\python.exe"
-        try {
-            Invoke-WebRequest -Uri $pythonInstaller -OutFile $installerPath -ErrorAction Stop
-        } catch {
-            Log-Message "Failed to download Python installer. Error: $_" $true
-        }
-        Log-Message "Python installer downloaded."
 
-        try {
-            Start-Process -FilePath $installerPath -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait -ErrorAction Stop
-        } catch {
-            Log-Message "Failed to install Python. Error: $_" $true
-        }
+    # Check if 'python --version' returns a valid version
+    $pythonVersion = & python --version 2>&1
+    if ($pythonVersion -notmatch "Python \d+\.\d+\.\d+") {
+        Log-Message "Python 3 is not installed or not properly set up. Opening Microsoft Store for installation..."
+        Start-Process "python" -Wait
+        
+        Write-Host "Please install Python from the Microsoft Store and then press any key to continue..."
+        Read-Host
 
-        if (-Not (Get-Command python -ErrorAction SilentlyContinue)) {
-            Log-Message "Failed to install Python 3. Please install it manually from https://www.python.org/" $true
+        # Check again after user installs Python
+        $pythonVersion = & python --version 2>&1
+        if ($pythonVersion -notmatch "Python \d+\.\d+\.\d+") {
+            Log-Message "Python installation not detected. Please ensure Python 3 is installed and accessible via the PATH." $true
         }
     }
+
     Log-Message "Python 3 is installed."
 
     Log-Message "Updating pip..."
@@ -245,7 +241,7 @@ function Check-AndInstallMySQL {
     Log-Message "MySQL is installed."
 
     # Add a pause to wait for user to complete MySQL installation
-    Write-Host "MySQL installation completed. Please complete the MySQL setup and then press ENTER to continue..."
+    Write-Host "MySQL installation completed. Please complete the MySQL setup and then press any key to continue..."
     Read-Host
 
     Log-Message "Configuring MySQL Server..."
@@ -266,7 +262,7 @@ function Check-AndInstallMySQL {
     $defaultFile = "C:\Program Files\MySQL\MySQL Server 8.4\my.ini"
     sc.exe create $serviceName binPath= "\"$binPath\" --defaults-file=\"$defaultFile\" $serviceName" DisplayName= "MySQL84" start= auto > $null 2>&1
 
-    Start-Sleep -Seconds 5 # Wait a few seconds before attempting to start the service
+    Start-Sleep -Seconds 3 # Wait a few seconds before attempting to start the service
 
     sc.exe start $serviceName > $null 2>&1
 
