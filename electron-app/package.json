@@ -19,6 +19,7 @@
     "pdfkit": "^0.15.0"
   },
   "build": {
+    "productName": "Tax Prep Tracker",
     "publish": [
       {
         "provider": "github",
@@ -58,7 +59,8 @@
       "perMachine": true,
       "allowElevation": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "shortcutName": "Tax Prep Tracker"
     }
   }
 }
