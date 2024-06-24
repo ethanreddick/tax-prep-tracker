@@ -122,9 +122,6 @@ def main():
     with open(args.creds, 'r') as f:
         creds = json.load(f)
 
-    # Logging to ensure the credentials are read correctly
-    log_message(f"Credentials: {creds}")
-
     host = "localhost"
     db_name = "tax_prep_db"
     mysql_username = creds['username']
