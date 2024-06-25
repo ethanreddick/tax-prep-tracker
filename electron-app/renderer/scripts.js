@@ -581,11 +581,34 @@ function validateClientData(client) {
   return errorMessage;
 }
 
+// Function to format SSN with dashes
+function formatSSN(ssn) {
+  const cleaned = ('' + ssn).replace(/\D/g, '');
+  const match = cleaned.match(/^(\d{3})(\d{2})(\d{4})$/);
+  if (match) {
+    return `${match[1]}-${match[2]}-${match[3]}`;
+  }
+  return ssn;
+}
+
+// Add event listener to format SSN on blur (when user leaves the input field)
+document.addEventListener("DOMContentLoaded", () => {
+  const ssnInput = document.getElementById("ssn");
+  if (ssnInput) {
+    ssnInput.addEventListener("blur", (event) => {
+      event.target.value = formatSSN(event.target.value);
+    });
+  }
+});
+
 // Add a new client to the database
 function submitAddClient() {
+  const ssnInput = document.getElementById("ssn");
+  ssnInput.value = formatSSN(ssnInput.value);
+
   let client = {
     name: document.getElementById("name").value,
-    ssn: document.getElementById("ssn").value,
+    ssn: ssnInput.value,
     address: document.getElementById("address").value,
     bank: document.getElementById("bank").value,
   };
