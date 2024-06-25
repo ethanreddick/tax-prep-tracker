@@ -1208,23 +1208,23 @@ function fetchAccountData() {
     );
 
     const totalAssets = assetAccounts.reduce(
-      (sum, account) => sum + account.account_balance,
+      (sum, account) => sum + parseFloat(account.account_balance),
       0,
     );
     const totalLiabilities = liabilityAccounts.reduce(
-      (sum, account) => sum + account.account_balance,
+      (sum, account) => sum + parseFloat(account.account_balance),
       0,
     );
     const totalEquity = equityAccounts.reduce(
-      (sum, account) => sum + account.account_balance,
+      (sum, account) => sum + parseFloat(account.account_balance),
       0,
     );
     const totalRevenue = revenueAccounts.reduce(
-      (sum, account) => sum + account.account_balance,
+      (sum, account) => sum + parseFloat(account.account_balance),
       0,
     );
     const totalExpenses = expenseAccounts.reduce(
-      (sum, account) => sum + account.account_balance,
+      (sum, account) => sum + parseFloat(account.account_balance),
       0,
     );
 
@@ -1232,13 +1232,13 @@ function fetchAccountData() {
     const trialBalanceData = accounts.map((account) => {
       const total_debit =
         account.account_class === "Expense" || account.account_class === "Asset"
-          ? account.account_balance
+          ? parseFloat(account.account_balance)
           : 0;
       const total_credit =
         account.account_class === "Revenue" ||
         account.account_class === "Liability" ||
         account.account_class === "Equity"
-          ? account.account_balance
+          ? parseFloat(account.account_balance)
           : 0;
       return {
         description: account.description,
@@ -1262,6 +1262,7 @@ function fetchAccountData() {
     };
   });
 }
+
 
 const PDFDocument = require("pdfkit");
 const fs = require("fs");

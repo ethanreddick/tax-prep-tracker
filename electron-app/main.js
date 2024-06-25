@@ -535,7 +535,7 @@ ipcMain.handle(
       const doc = new PDFDocument();
       doc.pipe(fs.createWriteStream(reportPath));
 
-      // Helper function to format numbers with commas
+      // Helper function to format numbers with commas and wrap negatives in parentheses
       const formatNumber = (num) => {
         if (typeof num !== 'number') {
           num = parseFloat(num);
@@ -543,8 +543,9 @@ ipcMain.handle(
         if (isNaN(num)) {
           num = 0;
         }
-        return num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-      };
+        let formattedNum = Math.abs(num).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        return num < 0 ? `(${formattedNum})` : formattedNum;
+      };          
 
       // Title and date
       let title = "";
