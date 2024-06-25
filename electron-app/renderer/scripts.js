@@ -266,7 +266,7 @@ const generateReportHTML = `
       <input type="text" id="reportPath" placeholder="Enter file path">
       <button type="button" class="browse-btn" onclick="openDirectoryDialog()">Browse</button>
     </div>
-    <button type="button" class="action-btn" onclick="generateReport()">Generate</button>
+    <button type="button" class="action-btn" id="generateReportButton" onclick="generateReport()">Generate</button>
     <p id="generateReportMessage" style="color: darkgreen;"></p>
   </form>
 `;
@@ -557,6 +557,10 @@ function addEventListeners() {
     .getElementById("reports-box")
     .querySelector("button:nth-child(4)")
     .addEventListener("click", showTrialBalance);
+  document
+    .getElementById("reports-box")
+    .querySelector("button:nth-child(5)")
+    .addEventListener("click", showGenerateReport);
 }
 
 // Ensure that the DOM is fully loaded before adding event listeners
@@ -1263,7 +1267,6 @@ function fetchAccountData() {
   });
 }
 
-
 const PDFDocument = require("pdfkit");
 const fs = require("fs");
 
@@ -1281,6 +1284,10 @@ function generatePDFReport(filePath, content) {
   doc.end();
 }
 
+const { dialog } = require("electron").remote;
+const path = require("path");
+const os = require("os");
+
 // Function to generate report
 function generateReport() {
   const reportType = document.getElementById("reportType").value;
@@ -1294,7 +1301,11 @@ function generateReport() {
     trialBalance: `TrialBalance${currentDate}.pdf`,
   };
 
-  if (!reportPath.toLowerCase().endsWith(".pdf")) {
+  // Check if reportPath is empty or the default placeholder
+  if (!reportPath || reportPath === "Save to Path:") {
+    reportPath = ""; // Send an empty path to main process
+    document.getElementById("reportPath").value = "Saved to Documents folder";
+  } else if (!reportPath.toLowerCase().endsWith(".pdf")) {
     if (!reportPath.endsWith("/")) {
       reportPath += "/";
     }
@@ -1335,38 +1346,17 @@ function generateReport() {
           messageElement.onclick = () => alert(error.message);
         }
       });
+  }).catch((error) => {
+    console.error("Error fetching data for report: ", error);
+    const messageElement = document.getElementById("generateReportMessage");
+    if (messageElement) {
+      messageElement.innerText =
+        "Error fetching data for report. Click here for details.";
+      messageElement.style.color = "red";
+      messageElement.onclick = () => alert(error.message);
+    }
   });
 }
-
-document
-  .getElementById("generate-report-button")
-  .addEventListener("click", async () => {
-    const reportType = document.getElementById("report-type").value;
-    const reportPath = await window.api.openDirectoryDialog();
-    if (!reportPath) {
-      alert("Please select a directory to save the report.");
-      return;
-    }
-
-    let content = {};
-
-    if (reportType === "balanceSheet") {
-      content = await window.api.fetchAccounts();
-    } else if (reportType === "incomeStatement") {
-      const revenueAccounts = await window.api.fetchRevenueAccounts();
-      const expenseAccounts = await window.api.fetchExpenseAccounts();
-      content = { revenueAccounts, expenseAccounts };
-    } else if (reportType === "trialBalance") {
-      content = await window.api.fetchTrialBalanceData();
-    }
-
-    const response = await window.api.generatePdfReport(
-      reportPath,
-      content,
-      reportType,
-    );
-    alert(response);
-  });
 
 // Function to open directory dialog and select a path
 function openDirectoryDialog() {

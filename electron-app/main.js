@@ -498,10 +498,25 @@ ipcMain.handle(
         throw new Error("Content is undefined or empty.");
       }
 
-      console.log("Generating PDF report...");
-      console.log("Report Path:", reportPath);
-      console.log("Report Type:", reportType);
-      console.log("Content:", content);
+      if (!reportPath || reportPath === "Save to Path:") {
+        const userDocumentsPath = path.join(os.homedir(), "Documents");
+        const currentDate = new Date().toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        }).replace(/ /g, "");
+        const defaultFileNames = {
+          balanceSheet: `BalanceSheet${currentDate}.pdf`,
+          incomeStatement: `IncomeStatement${currentDate}.pdf`,
+          trialBalance: `TrialBalance${currentDate}.pdf`,
+        };
+        reportPath = path.join(userDocumentsPath, defaultFileNames[reportType]);
+      }
+
+      logError("Generating PDF report...");
+      logError(`Report Path: ${reportPath}`);
+      logError(`Report Type: ${reportType}`);
+      //logError(`Content: ${JSON.stringify(content)}`);
 
       const {
         assetAccounts,
