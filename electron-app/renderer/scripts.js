@@ -98,7 +98,6 @@ const addAccountFormHTML = `
                 <option value="" disabled selected>Select Statement</option>
                 <option value="Balance Sheet">Balance Sheet</option>
                 <option value="Income Statement">Income Statement</option>
-                <option value="Cash Flow Statement">Cash Flow Statement</option>
             </select>
         </div>
         <div class="form-group">
@@ -1170,7 +1169,7 @@ function updateNetAmount() {
   }
 }
 
-// Add event listener to update net amount when transaction amount or type changes
+// Event listener to update net amount when transaction amount or type changes
 document.addEventListener("change", (event) => {
   if (
     event.target.classList.contains("transactionAmount") ||
@@ -1309,7 +1308,7 @@ function generateReport() {
     const reportData = {
       ...data,
       reportType,
-      trialBalanceData: data, // Add this line to ensure trialBalanceData is correctly passed
+      trialBalanceData: data,
     };
 
     window.electronAPI
