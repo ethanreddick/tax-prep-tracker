@@ -677,8 +677,17 @@ function loadClientData(clientId) {
 
 // Update client details in the database
 function submitUpdateClient() {
+  const clientId = document.getElementById("clientSelect").value;
+  const messageElement = document.getElementById("updateClientMessage");
+
+  if (!clientId) {
+    messageElement.innerText = "Please select a client.";
+    messageElement.style.color = "black";
+    return;
+  }
+
   let client = {
-    id: document.getElementById("clientSelect").value,
+    id: clientId,
     name: document.getElementById("updateName").value,
     ssn: document.getElementById("updateSSN").value,
     address: document.getElementById("updateAddress").value,
@@ -688,15 +697,14 @@ function submitUpdateClient() {
   window.electronAPI
     .updateClient(client)
     .then((response) => {
-      document.getElementById("updateClientMessage").innerText =
-        `${client.name} was successfully updated in the database.`;
+      messageElement.innerText = `${client.name} was successfully updated in the database.`;
+      messageElement.style.color = "darkgreen"; // Reset color to dark green on success
     })
     .catch((error) => {
-      document.getElementById("updateClientMessage").innerText =
+      messageElement.innerText =
         "There was an error updating the client in the database, click here for details.";
-      document.getElementById("updateClientMessage").style.color = "red";
-      document.getElementById("updateClientMessage").onclick = () =>
-        alert(error.message);
+      messageElement.style.color = "red";
+      messageElement.onclick = () => alert(error.message);
     });
 }
 
@@ -778,6 +786,15 @@ function submitAddAccount() {
 
 // Update account details in the database
 function submitUpdateAccount() {
+  const accountId = document.getElementById("accountSelect").value;
+  const messageElement = document.getElementById("updateAccountMessage");
+
+  if (!accountId) {
+    messageElement.innerText = "Please select an account.";
+    messageElement.style.color = "black";
+    return;
+  }
+
   let account = {
     id: document.getElementById("accountSelect").value,
     description: document.getElementById("updateDescription").value,
@@ -1283,10 +1300,6 @@ function generatePDFReport(filePath, content) {
 
   doc.end();
 }
-
-const { dialog } = require("electron").remote;
-const path = require("path");
-const os = require("os");
 
 // Function to generate report
 function generateReport() {
