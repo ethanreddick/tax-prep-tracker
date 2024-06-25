@@ -334,7 +334,8 @@ ipcMain.handle("add-transaction", async (event, transaction) => {
           // Prepare transaction lines queries
           const transactionLineQueries = lines.map((line) => {
             const { account_id, type, amount } = line;
-            const signedAmount = type === "Debit" ? -amount : amount;
+            // Credits should be negative, debits positive
+            const signedAmount = type === "Debit" ? amount : -amount;
             return new Promise((resolve, reject) => {
               connection.query(
                 "INSERT INTO transaction_lines (transaction_id, account_id, amount) VALUES (?, ?, ?)",
