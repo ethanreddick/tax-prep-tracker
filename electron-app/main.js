@@ -509,6 +509,7 @@ ipcMain.handle(
           balanceSheet: `BalanceSheet${currentDate}.pdf`,
           incomeStatement: `IncomeStatement${currentDate}.pdf`,
           trialBalance: `TrialBalance${currentDate}.pdf`,
+          accountSummary: `AccountSummary${currentDate}.pdf`,
         };
         reportPath = path.join(userDocumentsPath, defaultFileNames[reportType]);
       }
@@ -516,7 +517,6 @@ ipcMain.handle(
       logError("Generating PDF report...");
       logError(`Report Path: ${reportPath}`);
       logError(`Report Type: ${reportType}`);
-      //logError(`Content: ${JSON.stringify(content)}`);
 
       const {
         assetAccounts,
@@ -526,6 +526,7 @@ ipcMain.handle(
         totalAssets,
         totalLiabilities,
         totalEquity,
+        allAccounts, // Include all accounts in the data destructuring
       } = content;
 
       let revenueAccounts = [];
@@ -560,7 +561,7 @@ ipcMain.handle(
         }
         let formattedNum = Math.abs(num).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         return num < 0 ? `(${formattedNum})` : formattedNum;
-      };          
+      };
 
       // Title and date
       let title = "";
@@ -596,6 +597,14 @@ ipcMain.handle(
         title = "Income Statement";
       } else if (reportType === "trialBalance") {
         title = "Trial Balance";
+      } else if (reportType === "accountSummary") {
+        title = "Account Summary";
+        dateRange = currentDate.toLocaleDateString("en-US", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
       }
 
       doc.fontSize(20).text(title, { align: "center" });
@@ -925,6 +934,15 @@ ipcMain.handle(
             align: "right",
           },
         );
+      } else if (reportType === "accountSummary") {
+
+        doc.fontSize(16).text("Accounts", { align: "center" });
+        doc.moveDown(1);
+
+        allAccounts.forEach((account) => {
+          doc.fontSize(12).text(account.description, { align: "center" });
+          doc.moveDown(0.5);
+        });
       }
 
       doc.end();

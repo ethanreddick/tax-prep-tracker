@@ -259,6 +259,7 @@ const generateReportHTML = `
         <option value="balanceSheet">Balance Sheet</option>
         <option value="incomeStatement">Income Statement</option>
         <option value="trialBalance">Trial Balance</option>
+        <option value="accountSummary">Account Summary</option>
       </select>
     </div>
     <div class="form-group">
@@ -1291,6 +1292,11 @@ function fetchAccountData() {
       };
     });
 
+    // Create a unified list of all accounts for the account summary
+    const allAccounts = accounts.map((account) => ({
+      description: account.description,
+    }));
+
     return {
       assetAccounts,
       liabilityAccounts,
@@ -1303,6 +1309,7 @@ function fetchAccountData() {
       totalRevenue,
       totalExpenses,
       trialBalanceData,
+      allAccounts,
     };
   });
 }
@@ -1335,10 +1342,11 @@ function generateReport() {
     balanceSheet: `BalanceSheet${currentDate}.pdf`,
     incomeStatement: `IncomeStatement${currentDate}.pdf`,
     trialBalance: `TrialBalance${currentDate}.pdf`,
+    accountSummary: `AccountSummary${currentDate}.pdf`,
   };
 
   // Check if reportPath is empty or the default placeholder
-  if (!reportPath || reportPath === "Save to Path:") {
+  if (!reportPath || reportPath === "Save to Path:" || reportPath === "Saved to Documents folder") {
     reportPath = ""; // Send an empty path to main process
     document.getElementById("reportPath").value = "Saved to Documents folder";
   } else if (!reportPath.toLowerCase().endsWith(".pdf")) {
@@ -1349,7 +1357,7 @@ function generateReport() {
   }
 
   let fetchDataPromise;
-  if (reportType === "balanceSheet" || reportType === "incomeStatement") {
+  if (reportType === "balanceSheet" || reportType === "incomeStatement" || reportType === "accountSummary") {
     fetchDataPromise = fetchAccountData();
   } else if (reportType === "trialBalance") {
     fetchDataPromise = window.electronAPI.fetchTrialBalanceData();
