@@ -226,7 +226,7 @@ const addTransactionFormHTML = `
 
 // Manage Transactions Page
 const manageTransactionsHTML = `
-  <form id="manageTransactionForm">
+  <div class="manage-transactions">
     <h2>Manage Transactions</h2>
     <div class="search-bar">
       <span class="search-icon">&#128269;</span> <!-- Unicode for spyglass icon -->
@@ -246,7 +246,7 @@ const manageTransactionsHTML = `
       <span id="pageInfo">Page 1 of 1</span>
       <button id="nextPage" onclick="nextPage()">&#8250;</button>
     </div>
-  </form>
+  </div>
 `;
 
 // Add the "Generate Report" page content
@@ -387,6 +387,30 @@ function createTransactionItem(transaction) {
   return { transactionItem, transactionDetails };
 }
 
+function prevPage() {
+  if (currentPage > 1) {
+    currentPage--;
+    displayTransactions();
+  }
+}
+
+function nextPage() {
+  const totalPages = Math.ceil(transactions.length / itemsPerPage);
+  if (currentPage < totalPages) {
+    currentPage++;
+    displayTransactions();
+  }
+}
+
+function updatePagination(transactionsToRender = transactions) {
+  const pageInfo = document.getElementById("pageInfo");
+  const totalPages = Math.ceil(transactionsToRender.length / itemsPerPage);
+  pageInfo.innerText = `Page ${currentPage} of ${totalPages}`;
+
+  document.getElementById("prevPage").disabled = currentPage === 1;
+  document.getElementById("nextPage").disabled = currentPage === totalPages;
+}
+
 function displayTransactions(transactionsToRender = transactions) {
   const transactionItems = document.getElementById("transactionItems");
   transactionItems.innerHTML = ""; // Clear existing transactions
@@ -394,6 +418,12 @@ function displayTransactions(transactionsToRender = transactions) {
   const start = (currentPage - 1) * itemsPerPage;
   const end = start + itemsPerPage;
   const paginatedTransactions = transactionsToRender.slice(start, end);
+
+  if (paginatedTransactions.length === 0 && currentPage > 1) {
+    // If no transactions on the current page, go back to the previous page
+    currentPage--;
+    return displayTransactions(transactionsToRender);
+  }
 
   paginatedTransactions.forEach((transaction) => {
     const { transactionItem, transactionDetails } =
@@ -441,31 +471,6 @@ function deleteTransaction(transactionId) {
 
 function logError(errorMessage) {
   window.electronAPI.logError(errorMessage);
-}
-
-
-function updatePagination(transactionsToRender = transactions) {
-  const pageInfo = document.getElementById("pageInfo");
-  const totalPages = Math.ceil(transactionsToRender.length / itemsPerPage);
-  pageInfo.innerText = `Page ${currentPage} of ${totalPages}`;
-
-  document.getElementById("prevPage").disabled = currentPage === 1;
-  document.getElementById("nextPage").disabled = currentPage === totalPages;
-}
-
-function prevPage() {
-  if (currentPage > 1) {
-    currentPage--;
-    displayTransactions();
-  }
-}
-
-function nextPage() {
-  const totalPages = Math.ceil(transactions.length / itemsPerPage);
-  if (currentPage < totalPages) {
-    currentPage++;
-    displayTransactions();
-  }
 }
 
 let sortAscending = true; // Variable to track sorting order
