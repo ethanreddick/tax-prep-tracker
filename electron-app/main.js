@@ -492,7 +492,7 @@ ipcMain.handle("open-directory-dialog", async () => {
 
 ipcMain.handle(
   "generate-pdf-report",
-  async (event, { reportPath, content, reportType }) => {
+  async (event, { reportPath, content, reportType, startDate, endDate }) => {
     try {
       if (!content) {
         throw new Error("Content is undefined or empty.");
@@ -517,6 +517,7 @@ ipcMain.handle(
       logError("Generating PDF report...");
       logError(`Report Path: ${reportPath}`);
       logError(`Report Type: ${reportType}`);
+      logError(`Start Date: ${startDate}, End Date: ${endDate}`);
 
       const {
         assetAccounts,
@@ -535,8 +536,8 @@ ipcMain.handle(
       let totalExpenses = 0;
 
       if (reportType === "incomeStatement") {
-        revenueAccounts = await fetchRevenueAccounts();
-        expenseAccounts = await fetchExpenseAccounts();
+        revenueAccounts = await fetchRevenueAccounts(startDate, endDate);
+        expenseAccounts = await fetchExpenseAccounts(startDate, endDate);
 
         totalRevenue = revenueAccounts.reduce(
           (sum, account) => sum + account.account_balance,
@@ -576,17 +577,12 @@ ipcMain.handle(
           month: "long",
           day: "numeric",
         });
-      } else {
-        const startOfYear = new Date(
-          currentDate.getFullYear(),
-          currentDate.getMonth() >= 9 ? 9 : -3,
-          1,
-        );
-        dateRange = `${startOfYear.toLocaleDateString("en-US", {
+      } else if (reportType === "incomeStatement" || reportType === "trialBalance") {
+        dateRange = `${new Date(startDate).toLocaleDateString("en-US", {
           month: "long",
           day: "numeric",
           year: "numeric",
-        })} - ${currentDate.toLocaleDateString("en-US", {
+        })} - ${new Date(endDate).toLocaleDateString("en-US", {
           month: "long",
           day: "numeric",
           year: "numeric",
@@ -1060,45 +1056,20 @@ ipcMain.handle("log-error", async (event, errorMessage) => {
   logError(errorMessage);
 });
 
-async function fetchTrialBalanceData() {
-  return new Promise((resolve, reject) => {
-    const query = `
-      SELECT
-        a.account_id,
-        a.description,
-        a.account_class,
-        SUM(CASE WHEN tl.amount > 0 THEN tl.amount ELSE 0 END) AS total_credit,
-        SUM(CASE WHEN tl.amount < 0 THEN -tl.amount ELSE 0 END) AS total_debit
-      FROM
-        accounts a
-        LEFT JOIN transaction_lines tl ON a.account_id = tl.account_id
-        LEFT JOIN transactions t ON tl.transaction_id = t.transaction_id
-      WHERE
-        YEAR(t.transaction_date) = YEAR(CURDATE())
-      GROUP BY
-        a.account_id, a.description, a.account_class
-    `;
-    connection.query(query, (error, results) => {
-      if (error) {
-        reject(error);
-      } else {
-        const trialBalanceData = results
-          .filter(
-            (result) => result.total_credit !== 0 || result.total_debit !== 0,
-          )
-          .map((result) => ({
-            description: result.description,
-            total_debit: parseFloat(result.total_debit.toFixed(2)),
-            total_credit: parseFloat(result.total_credit.toFixed(2)),
-          }));
-        resolve(trialBalanceData);
-      }
-    });
-  });
-}
-
-ipcMain.handle("fetch-trial-balance-data", async (event) => {
+ipcMain.handle('fetch-trial-balance-data', async (event, { startDate, endDate }) => {
+  logError(`Received in main process - Start Date: ${startDate}, End Date: ${endDate}`);
   try {
+    const results = await fetchTrialBalanceData(startDate, endDate);
+    return results;
+  } catch (error) {
+    console.error("Error fetching trial balance data:", error);
+    throw error;
+  }
+});
+
+async function fetchTrialBalanceData(startDate, endDate) {
+  logError(`In fetchTrialBalanceData - Start Date: ${startDate}, End Date: ${endDate}`);
+  return new Promise((resolve, reject) => {
     const query = `
       SELECT
         a.account_id,
@@ -1111,32 +1082,51 @@ ipcMain.handle("fetch-trial-balance-data", async (event) => {
         LEFT JOIN transaction_lines tl ON a.account_id = tl.account_id
         LEFT JOIN transactions t ON tl.transaction_id = t.transaction_id
       WHERE
-        YEAR(t.transaction_date) = YEAR(CURDATE())
+        t.transaction_date BETWEEN ? AND ?
       GROUP BY
         a.account_id, a.description, a.account_class
     `;
-
-    const results = await new Promise((resolve, reject) => {
-      connection.query(query, (error, results) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve(results);
-        }
-      });
+    connection.query(query, [startDate, endDate], (error, results) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(results);
+      }
     });
+  });
+}
 
+ipcMain.handle('fetch-revenue-accounts', async (event, { startDate, endDate }) => {
+  logError(`Received in main process - Start Date: ${startDate}, End Date: ${endDate}`); // Log received dates
+  try {
+    const results = await fetchRevenueAccounts(startDate, endDate);
     return results;
   } catch (error) {
-    console.error("Error fetching trial balance data:", error);
+    console.error("Error fetching revenue accounts:", error);
     throw error;
   }
 });
 
-async function fetchRevenueAccounts() {
+ipcMain.handle('fetch-expense-accounts', async (event, { startDate, endDate }) => {
+  logError(`Received in main process - Start Date: ${startDate}, End Date: ${endDate}`); // Log received dates
+  try {
+    const results = await fetchExpenseAccounts(startDate, endDate);
+    return results;
+  } catch (error) {
+    console.error("Error fetching expense accounts:", error);
+    throw error;
+  }
+});
+
+async function fetchRevenueAccounts(startDate, endDate) {
+  logError(`In fetchRevenueAccounts - Start Date: ${startDate}, End Date: ${endDate}`); // Log received dates in the function
   return new Promise((resolve, reject) => {
-    const fiscalYearStart = getFiscalYearStart().toISOString().split("T")[0];
-    const today = getToday().toISOString().split("T")[0];
+    try {
+      logError(`Formatted in fetchRevenueAccounts2 - Start Date: ${startDate}, End Date: ${endDate}`); // Log formatted dates
+    } catch (e) {
+      return reject(new Error('Invalid date format.'));
+    }
+
     const query = `
       SELECT
         a.account_id,
@@ -1152,7 +1142,7 @@ async function fetchRevenueAccounts() {
       GROUP BY
         a.account_id, a.description
     `;
-    connection.query(query, [fiscalYearStart, today], (error, results) => {
+    connection.query(query, [startDate, endDate], (error, results) => {
       if (error) {
         reject(error);
       } else {
@@ -1169,10 +1159,15 @@ async function fetchRevenueAccounts() {
   });
 }
 
-async function fetchExpenseAccounts() {
+async function fetchExpenseAccounts(startDate, endDate) {
+  logError(`In fetchExpenseAccounts - Start Date: ${startDate}, End Date: ${endDate}`); // Log received dates in the function
   return new Promise((resolve, reject) => {
-    const fiscalYearStart = getFiscalYearStart().toISOString().split("T")[0];
-    const today = getToday().toISOString().split("T")[0];
+    try {
+      logError(`Formatted in fetchExpenseAccounts1 - Start Date: ${startDate}, End Date: ${endDate}`); // Log formatted dates
+    } catch (e) {
+      return reject(new Error('Invalid date format.'));
+    }
+
     const query = `
       SELECT
         a.account_id,
@@ -1188,7 +1183,7 @@ async function fetchExpenseAccounts() {
       GROUP BY
         a.account_id, a.description
     `;
-    connection.query(query, [fiscalYearStart, today], (error, results) => {
+    connection.query(query, [startDate, endDate], (error, results) => {
       if (error) {
         reject(error);
       } else {
@@ -1205,25 +1200,13 @@ async function fetchExpenseAccounts() {
   });
 }
 
-ipcMain.handle("fetch-revenue-accounts", async () => {
-  try {
-    const results = await fetchRevenueAccounts();
-    return results;
-  } catch (error) {
-    console.error("Error fetching revenue accounts:", error);
-    throw error;
+function formatDateToISOString(date) {
+  const dateObj = new Date(date);
+  if (isNaN(dateObj.getTime())) {
+    throw new Error('Invalid date');
   }
-});
-
-ipcMain.handle("fetch-expense-accounts", async () => {
-  try {
-    const results = await fetchExpenseAccounts();
-    return results;
-  } catch (error) {
-    console.error("Error fetching expense accounts:", error);
-    throw error;
-  }
-});
+  return dateObj.toISOString().split('T')[0];
+}
 
 ipcMain.handle("focus-window", () => {
   const mainWindow = BrowserWindow.getAllWindows()[0];

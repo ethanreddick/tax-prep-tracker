@@ -2,7 +2,7 @@
   "name": "tax-prep-tracker",
   "description": "A finance tracking tool designed to help quickly generate financial reports.",
   "author": "Ethan Reddick",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

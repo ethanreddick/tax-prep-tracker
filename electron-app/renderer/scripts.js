@@ -1354,31 +1354,44 @@ function generateReport() {
   const reportType = document.getElementById("reportType").value;
   let reportPath = document.getElementById("reportPath").value;
 
-  const currentDate = formatDate(new Date());
+  let startDate, endDate, formattedStartDate, formattedEndDate;
+  
+  if (reportType === "incomeStatement" || reportType === "trialBalance") {
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    startDate = new Date(startDateInput.value);
+    endDate = new Date(endDateInput.value);
 
-  const defaultFileNames = {
-    balanceSheet: `BalanceSheet${currentDate}.pdf`,
-    incomeStatement: `IncomeStatement${currentDate}.pdf`,
-    trialBalance: `TrialBalance${currentDate}.pdf`,
-    accountSummary: `AccountSummary${currentDate}.pdf`,
-  };
+    // Increment the dates by one day
+    startDate.setDate(startDate.getDate() + 1);
+    endDate.setDate(endDate.getDate() + 1);
 
-  // Check if reportPath is empty or the default placeholder
-  if (!reportPath || reportPath === "Save to Path:" || reportPath === "Saved to Documents folder") {
-    reportPath = ""; // Send an empty path to main process
-    document.getElementById("reportPath").value = "Saved to Documents folder";
-  } else if (!reportPath.toLowerCase().endsWith(".pdf")) {
-    if (!reportPath.endsWith("/")) {
-      reportPath += "/";
+    if (isNaN(startDate) || isNaN(endDate)) {
+      alert('Please select valid start and end dates.');
+      return;
     }
-    reportPath += defaultFileNames[reportType];
+
+    // Validate and format dates as YYYY-MM-DD
+    try {
+      formattedStartDate = formatDateToISOString(startDate);
+      formattedEndDate = formatDateToISOString(endDate);
+      logError(`(Beginning of generateReport) Start Date: ${formattedStartDate}, End Date: ${formattedEndDate}`); // Log the formatted dates
+    } catch (e) {
+      logError('Invalid date format. Please select valid dates.');
+      return;
+    }
   }
 
   let fetchDataPromise;
-  if (reportType === "balanceSheet" || reportType === "incomeStatement" || reportType === "accountSummary") {
+  if (reportType === "incomeStatement") {
+    fetchDataPromise = Promise.all([
+      window.electronAPI.fetchRevenueAccounts(formattedStartDate, formattedEndDate),
+      window.electronAPI.fetchExpenseAccounts(formattedStartDate, formattedEndDate)
+    ]);
+  } else if (reportType === "balanceSheet" || reportType === "accountSummary") {
     fetchDataPromise = fetchAccountData();
   } else if (reportType === "trialBalance") {
-    fetchDataPromise = window.electronAPI.fetchTrialBalanceData();
+    fetchDataPromise = window.electronAPI.fetchTrialBalanceData(formattedStartDate, formattedEndDate);
   }
 
   fetchDataPromise.then((data) => {
@@ -1390,8 +1403,7 @@ function generateReport() {
       trialBalanceData: data,
     };
 
-    window.electronAPI
-      .generatePdfReport(reportPath, reportData, reportType)
+    window.electronAPI.generatePdfReport(reportPath, reportData, reportType, formattedStartDate, formattedEndDate)
       .then((message) => {
         const messageElement = document.getElementById("generateReportMessage");
         if (messageElement) {
@@ -1402,8 +1414,7 @@ function generateReport() {
       .catch((error) => {
         const messageElement = document.getElementById("generateReportMessage");
         if (messageElement) {
-          messageElement.innerText =
-            "Error generating report. Click here for details.";
+          messageElement.innerText = "Error generating report. Click here for details.";
           messageElement.style.color = "red";
           messageElement.onclick = () => alert(error.message);
         }
@@ -1412,13 +1423,28 @@ function generateReport() {
     console.error("Error fetching data for report: ", error);
     const messageElement = document.getElementById("generateReportMessage");
     if (messageElement) {
-      messageElement.innerText =
-        "Error fetching data for report. Click here for details.";
+      messageElement.innerText = "Error fetching data for report. Click here for details.";
       messageElement.style.color = "red";
       messageElement.onclick = () => alert(error.message);
     }
   });
 }
+
+// Helper function to format dates as YYYY-MM-DD
+function formatDateToISOString(date) {
+  const pad = (n) => n < 10 ? '0' + n : n;
+  return date.getUTCFullYear() + '-' +
+    pad(date.getUTCMonth() + 1) + '-' +
+    pad(date.getUTCDate());
+}
+
+/*function formatDateToISOString(date) {
+  const dateObj = new Date(date);
+  if (isNaN(dateObj.getTime())) {
+    throw new Error('Invalid date');
+  }
+  return dateObj.toISOString().split('T')[0];
+}*/
 
 // Function to open directory dialog and select a path
 function openDirectoryDialog() {

@@ -19,17 +19,18 @@ contextBridge.exposeInMainWorld("electronAPI", {
   fetchTransactionDetails: () =>
     ipcRenderer.invoke("fetch-transaction-details"),
   openDirectoryDialog: () => ipcRenderer.invoke("open-directory-dialog"),
-  generatePdfReport: (reportPath, content, reportType) =>
+  generatePdfReport: (reportPath, content, reportType, startDate, endDate) =>
     ipcRenderer.invoke("generate-pdf-report", {
       reportPath,
       content,
       reportType,
+      startDate,
+      endDate,
     }),
   deleteTransaction: (transactionId) =>
     ipcRenderer.invoke("delete-transaction", transactionId),
-  fetchTrialBalanceData: () => ipcRenderer.invoke("fetch-trial-balance-data"),
-  fetchRevenueAccounts: () => ipcRenderer.invoke("fetch-revenue-accounts"),
-  fetchExpenseAccounts: () => ipcRenderer.invoke("fetch-expense-accounts"),
+  fetchTrialBalanceData: (startDate, endDate) => ipcRenderer.invoke("fetch-trial-balance-data", { startDate, endDate }),  fetchRevenueAccounts: (startDate, endDate) => ipcRenderer.invoke("fetch-revenue-accounts", { startDate, endDate }),
+  fetchExpenseAccounts: (startDate, endDate) => ipcRenderer.invoke("fetch-expense-accounts", { startDate, endDate }),
   logError: (errorMessage) => ipcRenderer.invoke("log-error", errorMessage),
   focusWindow: () => ipcRenderer.invoke('focus-window'),
 });
