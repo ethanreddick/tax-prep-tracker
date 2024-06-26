@@ -431,3 +431,37 @@ input[readonly] {
     padding-left: 20px; /* Adjust padding to fit the dollar sign */
     width: 100%; /* Ensure the input takes full width */
 }
+
+.date-inputs {
+    display: flex;
+    align-items: center;
+    margin-left: 0; /* Remove left margin to align with the label */
+}
+
+.date-inputs input[type="date"] {
+    margin: 0 5px;
+    flex: 1;
+    max-width: 150px;
+}
+
+#generateReportForm .form-group {
+    display: flex;
+    align-items: center;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+#dateRangeGroup {
+    display: flex;
+    align-items: center;
+    margin-top: 10px !important; /* Force margin-top to ensure it applies */
+}
+
+#dateRangeGroup label {
+    flex: 0 0 105px; /* Ensure label takes up consistent space */
+}
+
+#dateRangeGroup .date-inputs {
+    flex: 1; /* Allow inputs to take up remaining space */
+}
+

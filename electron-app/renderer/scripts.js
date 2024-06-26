@@ -255,12 +255,20 @@ const generateReportHTML = `
     <h2 class="task-title">Generate Report</h2>
     <div class="form-group">
       <label for="reportType">Report Type:</label>
-      <select id="reportType">
+      <select id="reportType" onchange="toggleDateSelectors()">
         <option value="balanceSheet">Balance Sheet</option>
         <option value="incomeStatement">Income Statement</option>
         <option value="trialBalance">Trial Balance</option>
         <option value="accountSummary">Account Summary</option>
       </select>
+    </div>
+    <div class="form-group" id="dateRangeGroup" style="display: none;">
+      <label>Period:</label>
+      <div class="date-inputs">
+        <input type="date" id="startDate" required>
+        <span> - </span>
+        <input type="date" id="endDate" required>
+      </div>
     </div>
     <div class="form-group">
       <label for="reportPath">Save to Path:</label>
@@ -305,6 +313,16 @@ function loadTransactions() {
     transactions = data;
     displayTransactions();
   });
+}
+
+function toggleDateSelectors() {
+  const reportType = document.getElementById("reportType").value;
+  const dateRangeGroup = document.getElementById("dateRangeGroup");
+  if (reportType === "incomeStatement" || reportType === "trialBalance") {
+    dateRangeGroup.style.display = "flex";
+  } else {
+    dateRangeGroup.style.display = "none";
+  }
 }
 
 // Utility function to format the date
