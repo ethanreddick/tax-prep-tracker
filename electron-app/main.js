@@ -1156,10 +1156,13 @@ async function fetchRevenueAccounts() {
       if (error) {
         reject(error);
       } else {
-        const revenueAccounts = results.map((result) => ({
-          description: result.description,
-          account_balance: parseFloat(result.account_balance.toFixed(2)),
-        }));
+        const revenueAccounts = results.map((result) => {
+          const account_balance = parseFloat(result.account_balance);
+          return {
+            description: result.description,
+            account_balance: isNaN(account_balance) ? 0 : account_balance.toFixed(2)
+          };
+        });
         resolve(revenueAccounts);
       }
     });
@@ -1189,10 +1192,13 @@ async function fetchExpenseAccounts() {
       if (error) {
         reject(error);
       } else {
-        const expenseAccounts = results.map((result) => ({
-          description: result.description,
-          account_balance: parseFloat(result.account_balance.toFixed(2)),
-        }));
+        const expenseAccounts = results.map((result) => {
+          const account_balance = parseFloat(result.account_balance);
+          return {
+            description: result.description,
+            account_balance: isNaN(account_balance) ? 0 : account_balance.toFixed(2)
+          };
+        });
         resolve(expenseAccounts);
       }
     });
