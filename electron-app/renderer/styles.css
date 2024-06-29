@@ -465,3 +465,23 @@ input[readonly] {
     flex: 1; /* Allow inputs to take up remaining space */
 }
 
+/* Ensure endPeriodDate aligns with startDate */
+#endPeriodDateGroup {
+    display: flex;
+    align-items: center;
+    margin-top: 10px !important; /* Force margin-top to ensure it applies */
+}
+
+#endPeriodDateGroup label {
+    flex: 0 0 105px; /* Ensure label takes up consistent space */
+}
+
+#endPeriodDateGroup .date-inputs {
+    flex: 1; /* Allow inputs to take up remaining space */
+}
+
+#endPeriodDateGroup .date-inputs input[type="date"] {
+    margin: 0 5px;
+    flex: 1;
+    max-width: 150px;
+}

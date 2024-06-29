@@ -492,12 +492,14 @@ ipcMain.handle("open-directory-dialog", async () => {
 
 ipcMain.handle(
   "generate-pdf-report",
-  async (event, { reportPath, content, reportType, startDate, endDate }) => {
+  async (event, { reportPath, content, reportType, startDate, endDate, endPeriodDate }) => {
     try {
       if (!content) {
         throw new Error("Content is undefined or empty.");
       }
-
+      logError(`(generate-pdf-report) Report Path: ${reportPath}`);
+      logError(`(generate-pdf-report) End Period Date: ${endPeriodDate}`);
+      
       if (!reportPath || reportPath === "Save to Path:") {
         const userDocumentsPath = path.join(os.homedir(), "Documents");
         const currentDate = new Date().toLocaleDateString("en-US", {
@@ -571,7 +573,7 @@ ipcMain.handle(
 
       if (reportType === "balanceSheet") {
         title = "Balance Sheet";
-        dateRange = currentDate.toLocaleDateString("en-US", {
+        dateRange = new Date(endPeriodDate).toLocaleDateString("en-US", {
           weekday: "long",
           year: "numeric",
           month: "long",
@@ -612,24 +614,33 @@ ipcMain.handle(
 
       if (reportType === "balanceSheet") {
         // Balance Sheet report generation code...
-
+        const balanceSheetData = await fetchBalanceSheetData(endPeriodDate);
+      
+        const assetAccounts = balanceSheetData.filter(account => account.account_class === "Asset");
+        const liabilityAccounts = balanceSheetData.filter(account => account.account_class === "Liability");
+        const equityAccounts = balanceSheetData.filter(account => account.account_class === "Equity");
+      
+        const totalAssets = assetAccounts.reduce((sum, account) => sum + parseFloat(account.adjusted_balance), 0);
+        const totalLiabilities = liabilityAccounts.reduce((sum, account) => sum + parseFloat(account.adjusted_balance), 0);
+        const totalEquity = equityAccounts.reduce((sum, account) => sum + parseFloat(account.adjusted_balance), 0);
+      
         doc
           .fontSize(16)
           .font("Helvetica-Bold")
           .text("ASSETS", { align: "left", underline: true });
         doc.moveDown(0.5);
-
+      
         assetAccounts.forEach((account) => {
           doc
             .fontSize(12)
             .font("Helvetica")
             .text(account.description, { continued: true });
-          doc.fontSize(12).text(`$${formatNumber(account.account_balance)}`, {
+          doc.fontSize(12).text(`$${formatNumber(account.adjusted_balance)}`, {
             align: "right",
           });
           doc.moveDown(0.5);
         });
-
+      
         doc.moveDown(0.5);
         doc
           .fontSize(16)
@@ -641,24 +652,24 @@ ipcMain.handle(
         doc.text(`TOTAL ASSETS`, { continued: true, underline: false });
         doc.text(`$${formatNumber(totalAssets)}`, { align: "right" });
         doc.moveDown(2.5); // Increase space after total
-
+      
         doc
           .fontSize(16)
           .font("Helvetica-Bold")
           .text("LIABILITIES", { align: "left", underline: true });
         doc.moveDown(0.5);
-
+      
         liabilityAccounts.forEach((account) => {
           doc
             .fontSize(12)
             .font("Helvetica")
             .text(account.description, { continued: true });
-          doc.fontSize(12).text(`$${formatNumber(account.account_balance)}`, {
+          doc.fontSize(12).text(`$${formatNumber(account.adjusted_balance)}`, {
             align: "right",
           });
           doc.moveDown(0.5);
         });
-
+      
         doc.moveDown(0.5);
         doc
           .fontSize(12)
@@ -670,24 +681,24 @@ ipcMain.handle(
         doc.text(`TOTAL LIABILITIES`, { continued: true, underline: false });
         doc.text(`$${formatNumber(totalLiabilities)}`, { align: "right" });
         doc.moveDown(2.5); // Increase space after total
-
+      
         doc
           .fontSize(16)
           .font("Helvetica-Bold")
           .text("OWNER'S EQUITY", { align: "left", underline: true });
         doc.moveDown(0.5);
-
+      
         equityAccounts.forEach((account) => {
           doc
             .fontSize(12)
             .font("Helvetica")
             .text(account.description, { continued: true });
-          doc.fontSize(12).text(`$${formatNumber(account.account_balance)}`, {
+          doc.fontSize(12).text(`$${formatNumber(account.adjusted_balance)}`, {
             align: "right",
           });
           doc.moveDown(0.5);
         });
-
+      
         doc.moveDown(0.5);
         doc
           .fontSize(12)
@@ -699,7 +710,7 @@ ipcMain.handle(
         doc.text(`Total Owner's Equity`, { continued: true });
         doc.text(`$${formatNumber(totalEquity)}`, { align: "right" });
         doc.moveDown(2.5); // Increase space after total
-
+      
         doc.moveDown(1.5);
         doc
           .fontSize(16)
@@ -716,7 +727,7 @@ ipcMain.handle(
           .text(`$${formatNumber(totalLiabilitiesAndEquity)}`, {
             align: "right",
           });
-
+      
         // Check if totals match
         if (totalAssets !== totalLiabilitiesAndEquity) {
           const difference = Math.abs(totalAssets - totalLiabilitiesAndEquity);
@@ -1195,6 +1206,54 @@ async function fetchExpenseAccounts(startDate, endDate) {
           };
         });
         resolve(expenseAccounts);
+      }
+    });
+  });
+}
+
+ipcMain.handle("fetch-balance-sheet-data", async (event, endPeriodDate) => {
+  try {
+    const results = await fetchBalanceSheetData(endPeriodDate);
+    return results;
+  } catch (error) {
+    console.error("Error fetching balance sheet data:", error);
+    throw error;
+  }
+});
+
+async function fetchBalanceSheetData(endPeriodDate) {
+  logError(`In fetchBalanceSheetData - End Period Date: ${endPeriodDate}`); // Log the received date
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT 
+        a.account_id, 
+        a.description, 
+        a.account_class, 
+        a.statement_type, 
+        a.account_balance - COALESCE(SUM(
+          CASE 
+            WHEN t.transaction_date > ? THEN tl.amount 
+            ELSE 0 
+          END
+        ), 0) AS adjusted_balance
+      FROM 
+        accounts a
+        LEFT JOIN transaction_lines tl ON a.account_id = tl.account_id
+        LEFT JOIN transactions t ON tl.transaction_id = t.transaction_id
+      GROUP BY
+        a.account_id, 
+        a.description, 
+        a.account_class, 
+        a.statement_type,
+        a.account_balance
+    `;
+    connection.query(query, [endPeriodDate], (error, results) => {
+      if (error) {
+        logError(`SQL error: ${error.message}`);
+        reject(error);
+      } else {
+        logError(`SQL results: ${JSON.stringify(results)}`);
+        resolve(results);
       }
     });
   });

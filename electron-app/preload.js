@@ -19,18 +19,21 @@ contextBridge.exposeInMainWorld("electronAPI", {
   fetchTransactionDetails: () =>
     ipcRenderer.invoke("fetch-transaction-details"),
   openDirectoryDialog: () => ipcRenderer.invoke("open-directory-dialog"),
-  generatePdfReport: (reportPath, content, reportType, startDate, endDate) =>
+  generatePdfReport: (reportPath, content, reportType, startDate, endDate, endPeriodDate) =>
     ipcRenderer.invoke("generate-pdf-report", {
       reportPath,
       content,
       reportType,
       startDate,
       endDate,
+      endPeriodDate,
     }),
   deleteTransaction: (transactionId) =>
     ipcRenderer.invoke("delete-transaction", transactionId),
-  fetchTrialBalanceData: (startDate, endDate) => ipcRenderer.invoke("fetch-trial-balance-data", { startDate, endDate }),  fetchRevenueAccounts: (startDate, endDate) => ipcRenderer.invoke("fetch-revenue-accounts", { startDate, endDate }),
+  fetchTrialBalanceData: (startDate, endDate) => ipcRenderer.invoke("fetch-trial-balance-data", { startDate, endDate }),
+  fetchRevenueAccounts: (startDate, endDate) => ipcRenderer.invoke("fetch-revenue-accounts", { startDate, endDate }),
   fetchExpenseAccounts: (startDate, endDate) => ipcRenderer.invoke("fetch-expense-accounts", { startDate, endDate }),
+  fetchBalanceSheetData: (endPeriodDate) => ipcRenderer.invoke("fetch-balance-sheet-data", endPeriodDate),
   logError: (errorMessage) => ipcRenderer.invoke("log-error", errorMessage),
   focusWindow: () => ipcRenderer.invoke('focus-window'),
 });

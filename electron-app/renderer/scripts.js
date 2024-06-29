@@ -256,10 +256,10 @@ const generateReportHTML = `
     <div class="form-group">
       <label for="reportType">Report Type:</label>
       <select id="reportType" onchange="toggleDateSelectors()">
+        <option value="accountSummary">Account Summary</option>
         <option value="balanceSheet">Balance Sheet</option>
         <option value="incomeStatement">Income Statement</option>
         <option value="trialBalance">Trial Balance</option>
-        <option value="accountSummary">Account Summary</option>
       </select>
     </div>
     <div class="form-group" id="dateRangeGroup" style="display: none;">
@@ -268,6 +268,12 @@ const generateReportHTML = `
         <input type="date" id="startDate" required>
         <span> - </span>
         <input type="date" id="endDate" required>
+      </div>
+    </div>
+      <div id="endPeriodDateGroup" class="form-group">
+      <label for="endPeriodDate">End Period:</label>
+      <div class="date-inputs">
+          <input type="date" id="endPeriodDate" name="endPeriodDate">
       </div>
     </div>
     <div class="form-group">
@@ -318,10 +324,17 @@ function loadTransactions() {
 function toggleDateSelectors() {
   const reportType = document.getElementById("reportType").value;
   const dateRangeGroup = document.getElementById("dateRangeGroup");
+  const endPeriodDateGroup = document.getElementById("endPeriodDateGroup");
+  
   if (reportType === "incomeStatement" || reportType === "trialBalance") {
     dateRangeGroup.style.display = "flex";
+    endPeriodDateGroup.style.display = "none";
+  } else if (reportType === "balanceSheet") {
+    dateRangeGroup.style.display = "none";
+    endPeriodDateGroup.style.display = "flex";
   } else {
     dateRangeGroup.style.display = "none";
+    endPeriodDateGroup.style.display = "none";
   }
 }
 
@@ -1332,30 +1345,34 @@ function fetchAccountData() {
   });
 }
 
-const PDFDocument = require("pdfkit");
-const fs = require("fs");
-
-function generatePDFReport(filePath, content) {
-  const doc = new PDFDocument();
-  doc.pipe(fs.createWriteStream(filePath));
-
-  doc.fontSize(20).text("Balance Sheet", { align: "center" });
-  doc.moveDown();
-
-  content.split("\n").forEach((line) => {
-    doc.fontSize(12).text(line);
-  });
-
-  doc.end();
-}
-
 // Function to generate report
 function generateReport() {
   const reportType = document.getElementById("reportType").value;
   let reportPath = document.getElementById("reportPath").value;
 
-  let startDate, endDate, formattedStartDate, formattedEndDate;
-  
+  const currentDate = formatDate(new Date());
+
+  const defaultFileNames = {
+    balanceSheet: `BalanceSheet${currentDate}.pdf`,
+    incomeStatement: `IncomeStatement${currentDate}.pdf`,
+    trialBalance: `TrialBalance${currentDate}.pdf`,
+    accountSummary: `AccountSummary${currentDate}.pdf`,
+  };
+
+  // Check if reportPath is empty or the default placeholder
+  if (!reportPath || reportPath === "Save to Path:" || reportPath === "Saved to Documents folder") {
+    reportPath = ""; // Send an empty path to main process
+    document.getElementById("reportPath").value = "Saved to Documents folder";
+  } else if (!reportPath.toLowerCase().endsWith(".pdf")) {
+    if (!reportPath.endsWith("/")) {
+      reportPath += "/";
+    }
+    logError("Prior to assigning report file name, the report path is:", reportPath)
+    reportPath += defaultFileNames[reportType];
+  }
+
+  let startDate, endDate, endPeriodDate, formattedStartDate, formattedEndDate, formattedEndPeriodDate;
+
   if (reportType === "incomeStatement" || reportType === "trialBalance") {
     const startDateInput = document.getElementById('startDate');
     const endDateInput = document.getElementById('endDate');
@@ -1380,6 +1397,23 @@ function generateReport() {
       logError('Invalid date format. Please select valid dates.');
       return;
     }
+  } else if (reportType === "balanceSheet") {
+    const endPeriodDateInput = document.getElementById('endPeriodDate');
+    endPeriodDate = new Date(endPeriodDateInput.value);
+
+    if (isNaN(endPeriodDate)) {
+      alert('Please select a valid end period date.');
+      return;
+    }
+
+    // Validate and format date as YYYY-MM-DD
+    try {
+      formattedEndPeriodDate = formatDateToISOString(endPeriodDate);
+      logError(`(Beginning of generateReport) End Period Date: ${formattedEndPeriodDate}`); // Log the formatted date
+    } catch (e) {
+      logError('Invalid date format. Please select a valid end period date.');
+      return;
+    }
   }
 
   let fetchDataPromise;
@@ -1388,14 +1422,16 @@ function generateReport() {
       window.electronAPI.fetchRevenueAccounts(formattedStartDate, formattedEndDate),
       window.electronAPI.fetchExpenseAccounts(formattedStartDate, formattedEndDate)
     ]);
-  } else if (reportType === "balanceSheet" || reportType === "accountSummary") {
+  } else if (reportType === "accountSummary") {
     fetchDataPromise = fetchAccountData();
   } else if (reportType === "trialBalance") {
     fetchDataPromise = window.electronAPI.fetchTrialBalanceData(formattedStartDate, formattedEndDate);
+  } else if (reportType === "balanceSheet") {
+    fetchDataPromise = window.electronAPI.fetchBalanceSheetData(formattedEndPeriodDate);
   }
-
+  // This is reached, and is prior to SQL results being printed to log
   fetchDataPromise.then((data) => {
-    console.log("Fetched data for report: ", data);
+    logError("Fetched data for report: ", data);
 
     const reportData = {
       ...data,
@@ -1403,7 +1439,7 @@ function generateReport() {
       trialBalanceData: data,
     };
 
-    window.electronAPI.generatePdfReport(reportPath, reportData, reportType, formattedStartDate, formattedEndDate)
+    window.electronAPI.generatePdfReport(reportPath, reportData, reportType, formattedStartDate, formattedEndDate, formattedEndPeriodDate)
       .then((message) => {
         const messageElement = document.getElementById("generateReportMessage");
         if (messageElement) {
@@ -1420,7 +1456,7 @@ function generateReport() {
         }
       });
   }).catch((error) => {
-    console.error("Error fetching data for report: ", error);
+    logError("Error fetching data for report: ", error);
     const messageElement = document.getElementById("generateReportMessage");
     if (messageElement) {
       messageElement.innerText = "Error fetching data for report. Click here for details.";
@@ -1449,9 +1485,15 @@ function formatDateToISOString(date) {
 // Function to open directory dialog and select a path
 function openDirectoryDialog() {
   window.electronAPI.openDirectoryDialog().then((selectedPath) => {
-    document.getElementById("reportPath").value = selectedPath;
+    if (selectedPath) {
+      logError("Selected path:", selectedPath); // Debug log
+      document.getElementById("reportPath").value = selectedPath;
+    } else {
+      logError("No path selected."); // Debug log for no selection
+    }
   });
 }
+
 
 function saveReportToFile(filePath, content) {
   const fs = require("fs");
