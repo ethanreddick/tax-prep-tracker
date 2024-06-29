@@ -270,7 +270,7 @@ const generateReportHTML = `
         <input type="date" id="endDate" required>
       </div>
     </div>
-      <div id="endPeriodDateGroup" class="form-group">
+    <div id="endPeriodDateGroup" class="form-group" style="display: none;">
       <label for="endPeriodDate">End Period:</label>
       <div class="date-inputs">
           <input type="date" id="endPeriodDate" name="endPeriodDate">
@@ -321,6 +321,7 @@ function loadTransactions() {
   });
 }
 
+// Function to toggle date selectors visibility based on report type
 function toggleDateSelectors() {
   const reportType = document.getElementById("reportType").value;
   const dateRangeGroup = document.getElementById("dateRangeGroup");
@@ -337,6 +338,12 @@ function toggleDateSelectors() {
     endPeriodDateGroup.style.display = "none";
   }
 }
+
+// Initialize the default report type and hide the endPeriodDateGroup on page load
+window.onload = () => {
+  document.getElementById("reportType").value = "accountSummary";
+  toggleDateSelectors();
+};
 
 // Utility function to format the date
 function formatDate(date, options = {}) {
@@ -1359,18 +1366,6 @@ function generateReport() {
     accountSummary: `AccountSummary${currentDate}.pdf`,
   };
 
-  // Check if reportPath is empty or the default placeholder
-  if (!reportPath || reportPath === "Save to Path:" || reportPath === "Saved to Documents folder") {
-    reportPath = ""; // Send an empty path to main process
-    document.getElementById("reportPath").value = "Saved to Documents folder";
-  } else if (!reportPath.toLowerCase().endsWith(".pdf")) {
-    if (!reportPath.endsWith("/")) {
-      reportPath += "/";
-    }
-    logError("Prior to assigning report file name, the report path is:", reportPath)
-    reportPath += defaultFileNames[reportType];
-  }
-
   let startDate, endDate, endPeriodDate, formattedStartDate, formattedEndDate, formattedEndPeriodDate;
 
   if (reportType === "incomeStatement" || reportType === "trialBalance") {
@@ -1385,6 +1380,11 @@ function generateReport() {
 
     if (isNaN(startDate) || isNaN(endDate)) {
       alert('Please select valid start and end dates.');
+      return;
+    }
+
+    if (startDate > endDate) {
+      alert('Please select a start date that is before the selected end date. \n (Nice try)');
       return;
     }
 
@@ -1414,6 +1414,18 @@ function generateReport() {
       logError('Invalid date format. Please select a valid end period date.');
       return;
     }
+  }
+
+  // Check if reportPath is empty or the default placeholder
+  if (!reportPath || reportPath === "Save to Path:" || reportPath === "Saved to Documents folder") {
+    reportPath = ""; // Send an empty path to main process
+    document.getElementById("reportPath").value = "Saved to Documents folder";
+  } else if (!reportPath.toLowerCase().endsWith(".pdf")) {
+    if (!reportPath.endsWith("/")) {
+      reportPath += "/";
+    }
+    logError("Prior to assigning report file name, the report path is:", reportPath)
+    reportPath += defaultFileNames[reportType];
   }
 
   let fetchDataPromise;
