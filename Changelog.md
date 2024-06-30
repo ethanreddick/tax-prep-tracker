@@ -3,7 +3,7 @@
 ## Tax Prep Tracker Version 0.1.1
 ### New Features
 - New 'Account Summary' report type that displays all accounts.
-- For 'Income Statement' and 'Trial Balance' reports the user must.
+- For 'Income Statement' and 'Trial Balance' reports the user must
   now select a start and end date (inclusive). Only the relevant data
   from within this time frame will be included in the report.
 - For the 'Balance Sheet' report the user must select a single date and
